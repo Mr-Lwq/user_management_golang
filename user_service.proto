@@ -1,0 +1,92 @@
+syntax = "proto3";  // Use proto3 syntax
+
+package userService;  // Define the package name of the proto file
+option go_package = "protoc/user_service";
+
+service UserService {
+  rpc Register (RegisterReq) returns (Stdout);
+  rpc Login (LoginReq) returns (Stdout);
+  rpc Logout (LogoutReq) returns (Stdout);
+  rpc RoleQuery (RoleQueryReq) returns (Stdout);
+  rpc GroupQuery (GroupQueryReq) returns (Stdout);
+  rpc PermissionQuery (PermissionQueryReq) returns (Stdout);
+  rpc Edit (EditReq) returns (Stdout);
+  rpc DelRole (DelRoleReq) returns (Stdout);
+  rpc DelGroup (DelGroupReq) returns (Stdout);
+  rpc CreateRole (CreateRoleReq) returns (Stdout);
+  rpc CreateGroup (CreateGroupReq) returns (Stdout);
+  rpc AddGroupMembers (AddGroupMembersReq) returns (Stdout);
+  rpc ShowAllGroup (ShowAllGroupReq) returns (Stdout);
+  rpc ShowAllRole (ShowAllRoleReq) returns (Stdout);
+}
+
+message RegisterReq {
+  string username = 1;
+  string password = 2;
+  string email = 3;
+  string phone = 4;
+  string full_name = 5;
+  string profilePicture = 6;
+}
+
+message Stdout {
+  uint32 status_code = 1;
+  string message = 2;
+}
+
+message LoginReq {
+  string user_name = 1;
+  string password = 3;
+}
+
+message LogoutReq{}
+
+message RoleQueryReq{}
+
+message GroupQueryReq{}
+
+message PermissionQueryReq{}
+
+message DelRoleReq{
+  string role_name = 1;
+}
+
+message DelGroupReq{
+  string group_name = 1;
+}
+
+message EditReq{
+  string username = 1;
+  string email = 2;
+  string phone = 3;
+  string full_name = 4;
+  string profilePicture = 5;
+}
+
+message CreateRoleReq{
+  string role_name = 1;
+  string description = 2;
+  string permissions = 3;
+}
+
+message CreateGroupReq{
+  string group_name = 1;
+  string description = 2;
+  string permissions = 3;
+}
+
+message AddGroupMembersReq{
+  string group_name = 1;
+  string user_name = 2;
+  string description = 3;
+  string permissions = 4;
+}
+
+message ShowAllGroupReq{
+  string group_name = 1;
+}
+
+message ShowAllRoleReq{
+  string role_name = 1;
+}
+

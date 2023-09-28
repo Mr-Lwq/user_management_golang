@@ -6,10 +6,10 @@ option go_package = "protoc/user_service";
 service UserService {
   rpc Register (RegisterReq) returns (Stdout);
   rpc Login (LoginReq) returns (Stdout);
-  rpc Logout (LogoutReq) returns (Stdout);
-  rpc RoleQuery (RoleQueryReq) returns (Stdout);
-  rpc GroupQuery (GroupQueryReq) returns (Stdout);
-  rpc PermissionQuery (PermissionQueryReq) returns (Stdout);
+  rpc Logout (NoneReq) returns (Stdout);
+  rpc SearchRole (NoneReq) returns (Stdout);
+  rpc SearchGroup (NoneReq) returns (Stdout);
+  rpc SearchPermission (NoneReq) returns (Stdout);
   rpc Edit (EditReq) returns (Stdout);
   rpc DelRole (DelRoleReq) returns (Stdout);
   rpc DelGroup (DelGroupReq) returns (Stdout);
@@ -26,7 +26,7 @@ message RegisterReq {
   string email = 3;
   string phone = 4;
   string full_name = 5;
-  string profilePicture = 6;
+  string profile_picture = 6;
 }
 
 message Stdout {
@@ -39,13 +39,7 @@ message LoginReq {
   string password = 3;
 }
 
-message LogoutReq{}
-
-message RoleQueryReq{}
-
-message GroupQueryReq{}
-
-message PermissionQueryReq{}
+message NoneReq{}
 
 message DelRoleReq{
   string role_name = 1;

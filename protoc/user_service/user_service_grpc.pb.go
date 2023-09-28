@@ -19,20 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	UserService_Register_FullMethodName        = "/userService.UserService/Register"
-	UserService_Login_FullMethodName           = "/userService.UserService/Login"
-	UserService_Logout_FullMethodName          = "/userService.UserService/Logout"
-	UserService_RoleQuery_FullMethodName       = "/userService.UserService/RoleQuery"
-	UserService_GroupQuery_FullMethodName      = "/userService.UserService/GroupQuery"
-	UserService_PermissionQuery_FullMethodName = "/userService.UserService/PermissionQuery"
-	UserService_Edit_FullMethodName            = "/userService.UserService/Edit"
-	UserService_DelRole_FullMethodName         = "/userService.UserService/DelRole"
-	UserService_DelGroup_FullMethodName        = "/userService.UserService/DelGroup"
-	UserService_CreateRole_FullMethodName      = "/userService.UserService/CreateRole"
-	UserService_CreateGroup_FullMethodName     = "/userService.UserService/CreateGroup"
-	UserService_AddGroupMembers_FullMethodName = "/userService.UserService/AddGroupMembers"
-	UserService_ShowAllGroup_FullMethodName    = "/userService.UserService/ShowAllGroup"
-	UserService_ShowAllRole_FullMethodName     = "/userService.UserService/ShowAllRole"
+	UserService_Register_FullMethodName         = "/userService.UserService/Register"
+	UserService_Login_FullMethodName            = "/userService.UserService/Login"
+	UserService_Logout_FullMethodName           = "/userService.UserService/Logout"
+	UserService_SearchRole_FullMethodName       = "/userService.UserService/SearchRole"
+	UserService_SearchGroup_FullMethodName      = "/userService.UserService/SearchGroup"
+	UserService_SearchPermission_FullMethodName = "/userService.UserService/SearchPermission"
+	UserService_Edit_FullMethodName             = "/userService.UserService/Edit"
+	UserService_DelRole_FullMethodName          = "/userService.UserService/DelRole"
+	UserService_DelGroup_FullMethodName         = "/userService.UserService/DelGroup"
+	UserService_CreateRole_FullMethodName       = "/userService.UserService/CreateRole"
+	UserService_CreateGroup_FullMethodName      = "/userService.UserService/CreateGroup"
+	UserService_AddGroupMembers_FullMethodName  = "/userService.UserService/AddGroupMembers"
+	UserService_ShowAllGroup_FullMethodName     = "/userService.UserService/ShowAllGroup"
+	UserService_ShowAllRole_FullMethodName      = "/userService.UserService/ShowAllRole"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -41,10 +41,10 @@ const (
 type UserServiceClient interface {
 	Register(ctx context.Context, in *RegisterReq, opts ...grpc.CallOption) (*Stdout, error)
 	Login(ctx context.Context, in *LoginReq, opts ...grpc.CallOption) (*Stdout, error)
-	Logout(ctx context.Context, in *LogoutReq, opts ...grpc.CallOption) (*Stdout, error)
-	RoleQuery(ctx context.Context, in *RoleQueryReq, opts ...grpc.CallOption) (*Stdout, error)
-	GroupQuery(ctx context.Context, in *GroupQueryReq, opts ...grpc.CallOption) (*Stdout, error)
-	PermissionQuery(ctx context.Context, in *PermissionQueryReq, opts ...grpc.CallOption) (*Stdout, error)
+	Logout(ctx context.Context, in *NoneReq, opts ...grpc.CallOption) (*Stdout, error)
+	SearchRole(ctx context.Context, in *NoneReq, opts ...grpc.CallOption) (*Stdout, error)
+	SearchGroup(ctx context.Context, in *NoneReq, opts ...grpc.CallOption) (*Stdout, error)
+	SearchPermission(ctx context.Context, in *NoneReq, opts ...grpc.CallOption) (*Stdout, error)
 	Edit(ctx context.Context, in *EditReq, opts ...grpc.CallOption) (*Stdout, error)
 	DelRole(ctx context.Context, in *DelRoleReq, opts ...grpc.CallOption) (*Stdout, error)
 	DelGroup(ctx context.Context, in *DelGroupReq, opts ...grpc.CallOption) (*Stdout, error)
@@ -81,7 +81,7 @@ func (c *userServiceClient) Login(ctx context.Context, in *LoginReq, opts ...grp
 	return out, nil
 }
 
-func (c *userServiceClient) Logout(ctx context.Context, in *LogoutReq, opts ...grpc.CallOption) (*Stdout, error) {
+func (c *userServiceClient) Logout(ctx context.Context, in *NoneReq, opts ...grpc.CallOption) (*Stdout, error) {
 	out := new(Stdout)
 	err := c.cc.Invoke(ctx, UserService_Logout_FullMethodName, in, out, opts...)
 	if err != nil {
@@ -90,27 +90,27 @@ func (c *userServiceClient) Logout(ctx context.Context, in *LogoutReq, opts ...g
 	return out, nil
 }
 
-func (c *userServiceClient) RoleQuery(ctx context.Context, in *RoleQueryReq, opts ...grpc.CallOption) (*Stdout, error) {
+func (c *userServiceClient) SearchRole(ctx context.Context, in *NoneReq, opts ...grpc.CallOption) (*Stdout, error) {
 	out := new(Stdout)
-	err := c.cc.Invoke(ctx, UserService_RoleQuery_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, UserService_SearchRole_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *userServiceClient) GroupQuery(ctx context.Context, in *GroupQueryReq, opts ...grpc.CallOption) (*Stdout, error) {
+func (c *userServiceClient) SearchGroup(ctx context.Context, in *NoneReq, opts ...grpc.CallOption) (*Stdout, error) {
 	out := new(Stdout)
-	err := c.cc.Invoke(ctx, UserService_GroupQuery_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, UserService_SearchGroup_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *userServiceClient) PermissionQuery(ctx context.Context, in *PermissionQueryReq, opts ...grpc.CallOption) (*Stdout, error) {
+func (c *userServiceClient) SearchPermission(ctx context.Context, in *NoneReq, opts ...grpc.CallOption) (*Stdout, error) {
 	out := new(Stdout)
-	err := c.cc.Invoke(ctx, UserService_PermissionQuery_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, UserService_SearchPermission_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -195,10 +195,10 @@ func (c *userServiceClient) ShowAllRole(ctx context.Context, in *ShowAllRoleReq,
 type UserServiceServer interface {
 	Register(context.Context, *RegisterReq) (*Stdout, error)
 	Login(context.Context, *LoginReq) (*Stdout, error)
-	Logout(context.Context, *LogoutReq) (*Stdout, error)
-	RoleQuery(context.Context, *RoleQueryReq) (*Stdout, error)
-	GroupQuery(context.Context, *GroupQueryReq) (*Stdout, error)
-	PermissionQuery(context.Context, *PermissionQueryReq) (*Stdout, error)
+	Logout(context.Context, *NoneReq) (*Stdout, error)
+	SearchRole(context.Context, *NoneReq) (*Stdout, error)
+	SearchGroup(context.Context, *NoneReq) (*Stdout, error)
+	SearchPermission(context.Context, *NoneReq) (*Stdout, error)
 	Edit(context.Context, *EditReq) (*Stdout, error)
 	DelRole(context.Context, *DelRoleReq) (*Stdout, error)
 	DelGroup(context.Context, *DelGroupReq) (*Stdout, error)
@@ -220,17 +220,17 @@ func (UnimplementedUserServiceServer) Register(context.Context, *RegisterReq) (*
 func (UnimplementedUserServiceServer) Login(context.Context, *LoginReq) (*Stdout, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-func (UnimplementedUserServiceServer) Logout(context.Context, *LogoutReq) (*Stdout, error) {
+func (UnimplementedUserServiceServer) Logout(context.Context, *NoneReq) (*Stdout, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
 }
-func (UnimplementedUserServiceServer) RoleQuery(context.Context, *RoleQueryReq) (*Stdout, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RoleQuery not implemented")
+func (UnimplementedUserServiceServer) SearchRole(context.Context, *NoneReq) (*Stdout, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchRole not implemented")
 }
-func (UnimplementedUserServiceServer) GroupQuery(context.Context, *GroupQueryReq) (*Stdout, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GroupQuery not implemented")
+func (UnimplementedUserServiceServer) SearchGroup(context.Context, *NoneReq) (*Stdout, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchGroup not implemented")
 }
-func (UnimplementedUserServiceServer) PermissionQuery(context.Context, *PermissionQueryReq) (*Stdout, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PermissionQuery not implemented")
+func (UnimplementedUserServiceServer) SearchPermission(context.Context, *NoneReq) (*Stdout, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchPermission not implemented")
 }
 func (UnimplementedUserServiceServer) Edit(context.Context, *EditReq) (*Stdout, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Edit not implemented")
@@ -306,7 +306,7 @@ func _UserService_Login_Handler(srv interface{}, ctx context.Context, dec func(i
 }
 
 func _UserService_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LogoutReq)
+	in := new(NoneReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -318,61 +318,61 @@ func _UserService_Logout_Handler(srv interface{}, ctx context.Context, dec func(
 		FullMethod: UserService_Logout_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).Logout(ctx, req.(*LogoutReq))
+		return srv.(UserServiceServer).Logout(ctx, req.(*NoneReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_RoleQuery_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RoleQueryReq)
+func _UserService_SearchRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NoneReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserServiceServer).RoleQuery(ctx, in)
+		return srv.(UserServiceServer).SearchRole(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UserService_RoleQuery_FullMethodName,
+		FullMethod: UserService_SearchRole_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).RoleQuery(ctx, req.(*RoleQueryReq))
+		return srv.(UserServiceServer).SearchRole(ctx, req.(*NoneReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_GroupQuery_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GroupQueryReq)
+func _UserService_SearchGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NoneReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserServiceServer).GroupQuery(ctx, in)
+		return srv.(UserServiceServer).SearchGroup(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UserService_GroupQuery_FullMethodName,
+		FullMethod: UserService_SearchGroup_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).GroupQuery(ctx, req.(*GroupQueryReq))
+		return srv.(UserServiceServer).SearchGroup(ctx, req.(*NoneReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_PermissionQuery_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PermissionQueryReq)
+func _UserService_SearchPermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NoneReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserServiceServer).PermissionQuery(ctx, in)
+		return srv.(UserServiceServer).SearchPermission(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UserService_PermissionQuery_FullMethodName,
+		FullMethod: UserService_SearchPermission_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).PermissionQuery(ctx, req.(*PermissionQueryReq))
+		return srv.(UserServiceServer).SearchPermission(ctx, req.(*NoneReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -541,16 +541,16 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_Logout_Handler,
 		},
 		{
-			MethodName: "RoleQuery",
-			Handler:    _UserService_RoleQuery_Handler,
+			MethodName: "SearchRole",
+			Handler:    _UserService_SearchRole_Handler,
 		},
 		{
-			MethodName: "GroupQuery",
-			Handler:    _UserService_GroupQuery_Handler,
+			MethodName: "SearchGroup",
+			Handler:    _UserService_SearchGroup_Handler,
 		},
 		{
-			MethodName: "PermissionQuery",
-			Handler:    _UserService_PermissionQuery_Handler,
+			MethodName: "SearchPermission",
+			Handler:    _UserService_SearchPermission_Handler,
 		},
 		{
 			MethodName: "Edit",

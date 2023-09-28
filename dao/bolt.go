@@ -30,7 +30,28 @@ type MyBolt struct {
 	AccountTable   string
 }
 
-// init helps you initialize the BoltDB table the first time you open the program
+// NewMyBolt creates a new MyBolt instance for interacting with a BoltDB database.
+// It opens the specified database file at the given path and returns a pointer
+// to the MyBolt instance. If an error occurs during instance creation, it returns
+// a non-nil error.
+func NewMyBolt() (*MyBolt, error) {
+	// Open the BoltDB database
+	db, err := bolt.Open("BoltDB", 0600, nil)
+	if err != nil {
+		return nil, err
+	}
+	// Create and initialize the MyBolt instance
+	myBolt := &MyBolt{
+		db:             db,
+		UserGroupTable: "user_group_table",
+		RoleTable:      "role_table",
+		AccountTable:   "account_table",
+	}
+	myBolt.init()
+	return myBolt, nil
+}
+
+// init helps you initialize the BoltDB table the first time you open the program.
 func (myBolt *MyBolt) init() {
 	tables := [3]string{
 		myBolt.AccountTable,
@@ -53,7 +74,7 @@ func (myBolt *MyBolt) init() {
 	// 创建表的初始化信息
 	if firstMake {
 		for _, table := range tables {
-			err := myBolt.CreateBucket(table)
+			err := myBolt.CreateTable(table)
 			if err != nil {
 				log.Printf("Failed to create bucket '%service': %v", table, err)
 				return
@@ -69,7 +90,7 @@ func (myBolt *MyBolt) init() {
 			Email:    "",
 			Phone:    "",
 			FullName: "超级管理员",
-			Role: []string{
+			Roles: []string{
 				"administrators",
 			},
 			Status:         "activate",
@@ -78,68 +99,45 @@ func (myBolt *MyBolt) init() {
 			LastLoginAt:    time.Now(),
 			SessionToken:   "",
 			ProfilePicture: "",
-			UserGroupId: []string{
+			UserGroups: []string{
 				"administrators",
 			},
 		}
-		err = myBolt.InsertData(admin)
+		err = myBolt.Insert(admin)
 		if err != nil {
 			log.Fatal(err)
 		}
 		fmt.Println("[UserId: admin, Password: 88888888] " + "Create account table success. Add root account.")
 		// 完成用户组表的初始化信息创建
 		userGroup := src.UserGroup{
-			GroupId:        "administrators",
-			GroupName:      "administrators",
-			Description:    "",
-			Permissions:    []string{},
-			Members:        []string{"admin"},
-			CreationTime:   time.Now(),
-			LastUpdateTime: time.Now(),
+			GroupId:       "administrators",
+			GroupName:     "administrators",
+			Description:   "",
+			Permissions:   []string{},
+			Members:       []string{"admin"},
+			CreatedAt:     time.Now(),
+			LastUpdatedAt: time.Now(),
 		}
-		err = myBolt.InsertData(userGroup)
+		err = myBolt.Insert(userGroup)
 		if err != nil {
 			log.Fatal(err)
 		}
 		fmt.Println("[GroupId: group, GroupName: administrators] " + "Create user_group table success. Add administrator group.")
 		// 完成角色表的初始化信息创建
 		role := src.Role{
-			RoleId:       "admin",
-			RoleName:     "admin",
-			Description:  "",
-			Permissions:  []string{},
-			CreationTime: time.Now(),
+			RoleId:      "admin",
+			RoleName:    "admin",
+			Description: "",
+			Permissions: []string{},
+			CreatedAt:   time.Now(),
 		}
-		err = myBolt.InsertData(role)
+		err = myBolt.Insert(role)
 		if err != nil {
 			log.Fatal(err)
 		}
 		fmt.Println("[RoleId: role, RoleName: admin] " + "Create role table success. Add admin role.")
 		fmt.Println("The first setting is successful. Please log in with administrator account admin001.")
 	}
-}
-
-// NewMyBolt creates a new MyBolt instance for interacting with a BoltDB database.
-// It opens the specified database file at the given path and returns a pointer
-// to the MyBolt instance. If an error occurs during instance creation, it returns
-// a non-nil error.
-func NewMyBolt() (*MyBolt, error) {
-	// Open the BoltDB database
-	db, err := bolt.Open("BoltDB", 0600, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create and initialize the MyBolt instance
-	myBolt := &MyBolt{
-		db:             db,
-		UserGroupTable: "user_group_table",
-		RoleTable:      "role_table",
-		AccountTable:   "account_table",
-	}
-	myBolt.init()
-
-	return myBolt, nil
 }
 
 // Close method helps you close BoltDB correctly.
@@ -150,35 +148,43 @@ func (myBolt *MyBolt) Close() {
 	}
 }
 
-// InsertData inserts data into a BoltDB bucket based on the provided BoltTable.
-func (myBolt *MyBolt) InsertData(table src.BoltTable) error {
-	var bucketName string
-	tableType := reflect.TypeOf(table)
-	switch tableType.Name() {
-	case "Account":
-		bucketName = myBolt.AccountTable
-	case "UserGroup":
-		bucketName = myBolt.UserGroupTable
-	case "Role":
-		bucketName = myBolt.RoleTable
+// Insert inserts data into a BoltDB bucket based on the provided BoltTable.
+func (myBolt *MyBolt) Insert(tb src.TableData) error {
+	var tableName string
+	var key string
+	var value []byte
+
+	switch t := tb.(type) {
+	case src.Account:
+		tableName = myBolt.AccountTable
+		key = t.UserId
+		value, _ = json.Marshal(t)
+	case src.UserGroup:
+		tableName = myBolt.UserGroupTable
+		key = t.GroupId
+		value, _ = json.Marshal(t)
+	case src.Role:
+		tableName = myBolt.RoleTable
+		key = t.RoleId
+		value, _ = json.Marshal(t)
 	default:
 		return fmt.Errorf("unknown table type")
 	}
-	key := table.GetId()
-	value, err := table.ToBytes()
-	if err != nil {
-		println(err)
-	}
 	return myBolt.db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte(bucketName))
+		bucket, err := tx.CreateBucketIfNotExists([]byte(tableName))
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(key), value)
+		err = bucket.Put([]byte(key), value)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Inserted: tablename：%s, key: %s\n", tableName, key)
+		return nil
 	})
 }
 
-// GetData 从 BoltDB 中检索数据并返回一个接口，该接口表示一个指向某个结构体指针的值。
+// Search 从 BoltDB 中检索数据并返回一个接口，该接口表示一个指向某个结构体指针的值。
 // 具体的结构体类型取决于传递给函数的 table 参数的类型。
 //
 // 如果 table 参数是 src.Account 类型，返回值将是 *src.Account。
@@ -186,30 +192,32 @@ func (myBolt *MyBolt) InsertData(table src.BoltTable) error {
 // 如果 table 参数是 src.Role 类型，返回值将是 *src.Role。
 //
 // 如果在检索或解析数据时发生错误，将返回错误。
-func (myBolt *MyBolt) GetData(table src.BoltTable) (interface{}, error) {
-	var bucketName string
+func (myBolt *MyBolt) Search(tb src.TableData) (interface{}, error) {
+	var tableName string
 	var simpleStruct interface{}
-	tableType := reflect.TypeOf(table)
-	switch tableType.Name() {
-	case "Account":
+	var key string
+	switch t := tb.(type) {
+	case src.Account:
 		simpleStruct = &src.Account{}
-		bucketName = myBolt.AccountTable
-	case "UserGroup":
+		tableName = myBolt.AccountTable
+		key = t.UserId
+	case src.UserGroup:
 		simpleStruct = &src.UserGroup{}
-		bucketName = myBolt.UserGroupTable
-	case "Role":
+		tableName = myBolt.UserGroupTable
+		key = t.GroupId
+	case src.Role:
 		simpleStruct = &src.Role{}
-		bucketName = myBolt.RoleTable
+		tableName = myBolt.RoleTable
+		key = t.RoleId
 	default:
-		return nil, fmt.Errorf("Unknown table type")
+		return nil, fmt.Errorf("unknown table type")
 	}
-	id := table.GetId()
 	err := myBolt.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(bucketName))
+		bucket := tx.Bucket([]byte(tableName))
 		if bucket == nil {
 			return nil // 桶不存在，返回空结果
 		}
-		data := bucket.Get([]byte(id))
+		data := bucket.Get([]byte(key))
 		// 根据表的类型反序列化数据为相应的结构体
 		if err := json.Unmarshal(data, simpleStruct); err != nil {
 			return err
@@ -219,29 +227,37 @@ func (myBolt *MyBolt) GetData(table src.BoltTable) (interface{}, error) {
 	return simpleStruct, err
 }
 
-// CreateBucket creates a new BoltDB bucket with the specified name within the database.
-func (myBolt *MyBolt) CreateBucket(bucketName string) error {
+// CreateTable creates a new BoltDB bucket with the specified name within the database.
+func (myBolt *MyBolt) CreateTable(tableName string) error {
 	return myBolt.db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucket([]byte(bucketName))
+		_, err := tx.CreateBucket([]byte(tableName))
 		return err
 	})
 }
 
 // PrintAll shows all the data that has been loaded into the BoltDB.
-func (myBolt *MyBolt) PrintAll(bucketName string) error {
-	simpleStruct, err := myBolt.selectBucket(bucketName)
-	if err != nil {
-		return err
-	}
+func (myBolt *MyBolt) PrintAll(tableName string) error {
+	var simpleStruct interface{}
+	var err error
 
+	switch tableName {
+	case myBolt.AccountTable:
+		simpleStruct = &src.Account{}
+	case myBolt.UserGroupTable:
+		simpleStruct = &src.UserGroup{}
+	case myBolt.RoleTable:
+		simpleStruct = &src.Role{}
+	default:
+		return fmt.Errorf("unknown bucket name")
+	}
 	// Create a table to display the data
 	table := tablewriter.NewWriter(os.Stdout)
 	// Start a BoltDB view transaction to read data
 	err = myBolt.db.View(func(tx *bolt.Tx) error {
 		// Retrieve the specified bucket
-		bucket := tx.Bucket([]byte(bucketName))
+		bucket := tx.Bucket([]byte(tableName))
 		if bucket == nil {
-			return fmt.Errorf("Bucket '%service' not found.", bucketName)
+			return fmt.Errorf("Bucket '%service' not found.", tableName)
 		}
 		// Add struct field names as the first row (header)
 		structFields := reflect.TypeOf(simpleStruct).Elem()
@@ -276,13 +292,14 @@ func (myBolt *MyBolt) PrintAll(bucketName string) error {
 	return nil
 }
 
-func (myBolt *MyBolt) IsExistQuery(bucketName string, id string) (bool, error) {
+// IsExist Determines whether a key exists
+func (myBolt *MyBolt) IsExist(tableName string, id string) (bool, error) {
 	var exist bool
-	switch bucketName {
+	switch tableName {
 	case myBolt.AccountTable, myBolt.UserGroupTable, myBolt.RoleTable:
 		err := myBolt.db.View(func(tx *bolt.Tx) error {
-			bucket := tx.Bucket([]byte(bucketName)) // 替换成你的桶名
-			key := []byte(id)                       // 替换成你要查询的键名
+			bucket := tx.Bucket([]byte(tableName)) // 替换成你的桶名
+			key := []byte(id)                      // 替换成你要查询的键名
 			val := bucket.Get(key)
 			if val == nil {
 				exist = false
@@ -301,17 +318,64 @@ func (myBolt *MyBolt) IsExistQuery(bucketName string, id string) (bool, error) {
 	}
 }
 
-func (myBolt *MyBolt) selectBucket(bucketName string) (interface{}, error) {
-	var simpleStruct interface{}
-	switch bucketName {
-	case myBolt.AccountTable:
-		simpleStruct = &src.Account{}
-	case myBolt.UserGroupTable:
-		simpleStruct = &src.UserGroup{}
-	case myBolt.RoleTable:
-		simpleStruct = &src.Role{}
+// Update Helps users edit changeable properties
+func (myBolt *MyBolt) Update(tb src.TableData) error {
+	var bucketName string
+	var key string
+	var value []byte
+	switch t := tb.(type) {
+	case src.Account:
+		bucketName = myBolt.AccountTable
+		key = t.UserId
+		value, _ = json.Marshal(t)
+	case src.UserGroup:
+		bucketName = myBolt.UserGroupTable
+		key = t.GroupId
+		value, _ = json.Marshal(t)
+	case src.Role:
+		bucketName = myBolt.RoleTable
+		key = t.RoleId
+		value, _ = json.Marshal(t)
 	default:
-		return nil, fmt.Errorf("unknown bucket name")
+		return fmt.Errorf("unknown table type")
 	}
-	return simpleStruct, nil
+	return myBolt.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(bucketName))
+		if bucket == nil {
+			return fmt.Errorf("bucket not found")
+		}
+		existingValue := bucket.Get([]byte(key))
+		if existingValue == nil {
+			return fmt.Errorf("record not found")
+		}
+		// update
+		return bucket.Put([]byte(key), value)
+	})
+}
+
+// Del Helps administrator delete a common user
+func (myBolt *MyBolt) Del(tb src.TableData) error {
+	var bucketName string
+	var key string
+	switch t := tb.(type) {
+	case src.Account:
+		bucketName = myBolt.AccountTable
+		key = t.UserId
+	case src.UserGroup:
+		bucketName = myBolt.UserGroupTable
+		key = t.GroupId
+	case src.Role:
+		bucketName = myBolt.RoleTable
+		key = t.RoleId
+	default:
+		return fmt.Errorf("unknown table type")
+	}
+	return myBolt.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(bucketName))
+		if bucket == nil {
+			return fmt.Errorf("bucket not found")
+		}
+		// delete
+		return bucket.Delete([]byte(key))
+	})
 }

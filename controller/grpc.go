@@ -30,7 +30,7 @@ func (s *GrpcService) Login(ctx context.Context, req *pb.LoginReq) (*pb.Stdout, 
 	return nil, nil
 }
 
-func (s *GrpcService) Logout(ctx context.Context, req *pb.LogoutReq) (*pb.Stdout, error) {
+func (s *GrpcService) Logout(ctx context.Context, req *pb.NoneReq) (*pb.Stdout, error) {
 	// 实现注销逻辑
 	return nil, nil
 }

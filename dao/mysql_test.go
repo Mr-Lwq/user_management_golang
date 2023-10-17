@@ -169,11 +169,11 @@ func TestMysql_Search(t *testing.T) {
 	//	RoleId: "admin",
 	//}
 	group := src.UserGroup{
-		GroupId: "administrators",
+		GroupId: "administrators11",
 	}
 	result, err := mysql.Search(group)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("%v", err)
 	} else {
 		// 检查查询结果是否与预期相符
 		retrievedUser, ok := result.(src.UserGroup)

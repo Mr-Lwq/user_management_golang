@@ -104,6 +104,7 @@ func (mysql *Mysql) init() {
 		userGroup := src.UserGroup{
 			GroupId:       "administrators",
 			GroupName:     "administrators",
+			GroupLeads:    "admin",
 			Description:   "",
 			Permissions:   []string{},
 			Members:       []string{"admin"},
@@ -447,6 +448,7 @@ func (mysql *Mysql) CreateTable(tableName string) error {
 	case mysql.UserGroupTable:
 		tableStructure = map[string]string{
 			"GroupId":       "VARCHAR(255)",
+			"GroupLeads":    "VARCHAR(255)",
 			"GroupName":     "VARCHAR(255)",
 			"Description":   "VARCHAR(255)",
 			"Permissions":   "VARCHAR(255)",

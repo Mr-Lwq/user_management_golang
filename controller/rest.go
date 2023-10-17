@@ -1,41 +1,42 @@
 package controller
 
 import (
-	"encoding/base64"
+	"fmt"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"strings"
 	pb "user_management_golang/protoc/user_service"
 	"user_management_golang/service"
 	"user_management_golang/src"
 	"user_management_golang/utils"
 )
 
-type RestService struct{}
-
-func NewRestService() *RestService {
-	return &RestService{}
+type RestController struct {
+	server *service.Server
 }
 
-func (r *RestService) Register(c *gin.Context) {
+func NewRestController(db *service.Server) *RestController {
+	return &RestController{db}
+}
+
+// Version
+func (r *RestController) Version(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"Message": "1.0.0"})
+}
+
+// Register
+func (r *RestController) Register(c *gin.Context) {
 	var req pb.RegisterReq
-	// 使用 ShouldBindJSON 将请求体绑定到 req 结构体
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"Message": err.Error()})
 		return
 	}
-	password := []byte(req.Password)
-	hashedPassword, err := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	hashedPasswordStr := base64.StdEncoding.EncodeToString(hashedPassword)
 	sessionToken, _ := utils.GenerateSessionToken(req.Username)
 	account := src.Account{
 		UserId:         req.Username,
 		Username:       req.Username,
-		Password:       hashedPasswordStr,
+		Password:       req.Password,
 		Email:          req.Email,
 		Phone:          req.Phone,
 		FullName:       req.FullName,
@@ -43,17 +44,198 @@ func (r *RestService) Register(c *gin.Context) {
 		Status:         "activate",
 		SessionToken:   sessionToken,
 	}
-	success, err := service.UserRegister(account)
+	success, err := r.server.UserRegister(account)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"StatusCode": 200, "Message": "OK."})
+		fmt.Println(err)
+		c.JSON(400, gin.H{"Message": err.Error()})
 	} else {
 		if success {
-			c.JSON(http.StatusOK, gin.H{"StatusCode": 200, "Message": "OK."})
+			c.JSON(http.StatusOK, gin.H{"Message": "registered successfully."})
 		} else {
-			c.JSON(http.StatusOK, gin.H{"StatusCode": 200, "Message": "OK."})
+			c.JSON(500, gin.H{"Message": "server unknown error."})
 		}
 	}
-
 }
 
-func (r *RestService) Login(c *gin.Context) {}
+// Login
+func (r *RestController) Login(c *gin.Context) {
+	var req pb.LoginReq
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"Message": err.Error()})
+		return
+	}
+	account := src.Account{
+		UserId:   req.Username,
+		Username: req.Username,
+		Password: req.Password,
+	}
+	token, err := r.server.Login(account)
+	if err != nil {
+		c.JSON(401, gin.H{
+			"Message":      err.Error(),
+			"SessionToken": "",
+		})
+	} else {
+		c.JSON(http.StatusOK, gin.H{
+			"Message":      "login  successful.",
+			"SessionToken": token,
+		})
+	}
+}
+
+// Logout
+func (r *RestController) Logout(c *gin.Context) {
+	username := c.PostForm("username")
+	password := c.PostForm("password")
+	if username != "" && password != "" {
+		account := src.Account{
+			UserId:   username,
+			Password: password,
+		}
+		err := r.server.LogoutByCredentials(account)
+		if err != nil {
+			c.JSON(401, gin.H{"Message": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"Message": "logout successful.",
+		})
+		return
+	}
+
+	verifyToken(c, func(account *src.Account, token string) {
+		err := r.server.Logout(*account)
+		if err != nil {
+			c.JSON(401, gin.H{"Message": err.Error()})
+			return
+		} else {
+			c.JSON(http.StatusOK, gin.H{
+				"Message": "logout  successful.",
+			})
+		}
+	})
+}
+
+// CheckTokenValid
+func (r *RestController) CheckTokenValid(c *gin.Context) {
+	verifyToken(c, func(account *src.Account, token string) {
+		err := r.server.VerifyToken(account, token)
+		if err != nil {
+			c.JSON(401, gin.H{"Message": "the token is invalid"})
+		}
+		c.JSON(http.StatusOK, gin.H{"Message": "the token is valid"})
+	})
+}
+
+// SearchRole
+func (r *RestController) SearchRole(c *gin.Context) {
+	verifyToken(c, func(account *src.Account, token string) {
+		roleStr, err := r.server.SearchRole(account)
+		if err != nil {
+			c.JSON(500, gin.H{"Message": "server internal error"})
+			return
+		}
+		if account.SessionToken == token {
+			c.JSON(http.StatusOK, gin.H{"Message": roleStr})
+			return
+		} else {
+			c.JSON(401, gin.H{"Message": "the token has expired"})
+			return
+		}
+	})
+}
+
+// SearchGroup
+func (r *RestController) SearchGroup(c *gin.Context) {
+	verifyToken(c, func(account *src.Account, token string) {
+		groupStr, err := r.server.SearchGroup(account)
+		if err != nil {
+			c.JSON(500, gin.H{"Message": "Server internal error"})
+			return
+		}
+		if account.SessionToken == token {
+			c.JSON(http.StatusOK, gin.H{"Message": groupStr})
+			return
+		} else {
+			c.JSON(401, gin.H{"Message": "the token has expired"})
+			return
+		}
+	})
+}
+
+// SearchPermission
+func (r *RestController) SearchPermission(c *gin.Context) {
+	verifyToken(c, func(account *src.Account, token string) {
+		groupStr, err := r.server.SearchGroup(account)
+		if err != nil {
+			c.JSON(500, gin.H{"Message": "Server internal error"})
+			return
+		}
+		if account.SessionToken == token {
+			c.JSON(http.StatusOK, gin.H{"Message": groupStr})
+			return
+		} else {
+			c.JSON(401, gin.H{"Message": "the token has expired"})
+			return
+		}
+	})
+}
+
+// Edit
+func (r *RestController) Edit(c *gin.Context) {
+	verifyToken(c, func(account *src.Account, token string) {
+		err := r.server.VerifyToken(account, token)
+		if err != nil {
+			c.JSON(401, gin.H{"Message": "the token has expired"})
+			return
+		} else {
+			r.server.Edit(account)
+		}
+	})
+}
+
+// CreateRole
+//func (r *RestController) CreateRole(c *gin.Context) {
+//	verifyToken(c, func(account *src.Account, token string) {
+//		r.server.
+//	})
+//}
+
+func verifyToken(c *gin.Context, callFunc func(account *src.Account, token string)) {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		c.JSON(401, gin.H{"Message": "missing Authorization header"})
+		return
+	}
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		c.JSON(401, gin.H{"Message": "invalid Authorization header format"})
+		return
+	}
+	token := authHeader[len("Bearer "):]
+	_, err := utils.GetUserIdFromToken(token)
+	if err != nil {
+		c.JSON(401, gin.H{"Message": err.Error()})
+		return
+	}
+	success, err := utils.IsTokenValid(token)
+	if err != nil {
+		c.JSON(401, gin.H{"Message": err.Error()})
+		return
+	}
+	userId, err := utils.GetUserIdFromToken(token)
+	if err != nil {
+		c.JSON(401, gin.H{"Message": err.Error()})
+		return
+	} else {
+		if success {
+			account := &src.Account{
+				UserId: userId,
+			}
+			callFunc(account, token)
+			return
+		} else {
+			c.JSON(401, gin.H{"Message": "the token has expired"})
+			return
+		}
+	}
+}

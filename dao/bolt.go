@@ -13,11 +13,13 @@ import (
 	"github.com/boltdb/bolt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/olekukonko/tablewriter"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"os"
 	"reflect"
 	"time"
 	"user_management_golang/src"
+	"user_management_golang/utils"
 )
 
 var shortFormat = "2006-01-02 15:04:05"
@@ -80,7 +82,7 @@ func (myBolt *MyBolt) init() {
 				return
 			}
 		}
-
+		var password []byte
 		fmt.Println("first setting beginning...")
 		// 完成用户表的初始化信息创建
 		admin := src.Account{
@@ -93,7 +95,7 @@ func (myBolt *MyBolt) init() {
 			Roles: []string{
 				"administrators",
 			},
-			Status:         "activate",
+			Status:         "offline",
 			CreatedAt:      time.Now(),
 			UpdatedAt:      time.Now(),
 			LastLoginAt:    time.Now(),
@@ -103,6 +105,11 @@ func (myBolt *MyBolt) init() {
 				"administrators",
 			},
 		}
+		password = []byte(admin.Password)
+		hashedPassword, _ := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
+		admin.Password = string(hashedPassword)
+		sessionToken, _ := utils.GenerateSessionToken(admin.UserId)
+		admin.SessionToken = sessionToken
 		err = myBolt.Insert(admin)
 		if err != nil {
 			log.Fatal(err)
@@ -111,6 +118,7 @@ func (myBolt *MyBolt) init() {
 		// 完成用户组表的初始化信息创建
 		userGroup := src.UserGroup{
 			GroupId:       "administrators",
+			GroupLeads:    "admin",
 			GroupName:     "administrators",
 			Description:   "",
 			Permissions:   []string{},
@@ -197,14 +205,26 @@ func (myBolt *MyBolt) Search(tb src.TableData) (interface{}, error) {
 	var simpleStruct interface{}
 	var key string
 	switch t := tb.(type) {
+	case *src.Account:
+		simpleStruct = &src.Account{}
+		tableName = myBolt.AccountTable
+		key = t.UserId
 	case src.Account:
 		simpleStruct = &src.Account{}
 		tableName = myBolt.AccountTable
 		key = t.UserId
+	case *src.UserGroup:
+		simpleStruct = &src.UserGroup{}
+		tableName = myBolt.UserGroupTable
+		key = t.GroupId
 	case src.UserGroup:
 		simpleStruct = &src.UserGroup{}
 		tableName = myBolt.UserGroupTable
 		key = t.GroupId
+	case *src.Role:
+		simpleStruct = &src.Role{}
+		tableName = myBolt.RoleTable
+		key = t.RoleId
 	case src.Role:
 		simpleStruct = &src.Role{}
 		tableName = myBolt.RoleTable
@@ -324,13 +344,25 @@ func (myBolt *MyBolt) Update(tb src.TableData) error {
 	var key string
 	var value []byte
 	switch t := tb.(type) {
+	case *src.Account:
+		bucketName = myBolt.AccountTable
+		key = t.UserId
+		value, _ = json.Marshal(t)
 	case src.Account:
 		bucketName = myBolt.AccountTable
 		key = t.UserId
 		value, _ = json.Marshal(t)
+	case *src.UserGroup:
+		bucketName = myBolt.UserGroupTable
+		key = t.GroupId
+		value, _ = json.Marshal(t)
 	case src.UserGroup:
 		bucketName = myBolt.UserGroupTable
 		key = t.GroupId
+		value, _ = json.Marshal(t)
+	case *src.Role:
+		bucketName = myBolt.RoleTable
+		key = t.RoleId
 		value, _ = json.Marshal(t)
 	case src.Role:
 		bucketName = myBolt.RoleTable
@@ -358,12 +390,21 @@ func (myBolt *MyBolt) Del(tb src.TableData) error {
 	var bucketName string
 	var key string
 	switch t := tb.(type) {
+	case *src.Account:
+		bucketName = myBolt.AccountTable
+		key = t.UserId
 	case src.Account:
 		bucketName = myBolt.AccountTable
 		key = t.UserId
+	case *src.UserGroup:
+		bucketName = myBolt.UserGroupTable
+		key = t.GroupId
 	case src.UserGroup:
 		bucketName = myBolt.UserGroupTable
 		key = t.GroupId
+	case *src.Role:
+		bucketName = myBolt.RoleTable
+		key = t.RoleId
 	case src.Role:
 		bucketName = myBolt.RoleTable
 		key = t.RoleId

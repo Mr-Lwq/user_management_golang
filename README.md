@@ -14,16 +14,32 @@
 
 ### 源码安装
 
+simple 模式
+
 ```bash
 go mod tidy 
 go run main.go --mode="simple" --grpc-port="50051" --rest-port="50050"
 ```
 
+mysql 模式
+
+```bash
+
+```
+
 ### 二进制文件安装
+
+simple 模式
 
 ```bash
 .\main.exe --mode="simple" --grpc-port="50051" --rest-port="50050"  // windows x64 启动
 ./main --mode="simple" --grpc-port="50051" --rest-port="50050"      // linux 系统启动
+```
+
+mysql 模式
+
+```bash
+
 ```
 
 控制台出现以下界面即为启动成功。
@@ -135,12 +151,13 @@ python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. user_service.
 
 #### RESTful
 
-| 序号 | 请求方式 | 路由地址  | 输入                                                         | 输出                                                         |
-| ---- | -------- | --------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| 1    | Post     | /register | username string<br />email string<br />phone string<br />full_name<br />profile_picture | StatusCode: 200 （注册成功）<br />StatusCode: 409   (用户已存在)<br />StatusCode: 400 （无效输入）<br />StatusCode: 500   (服务器未知错误) |
-| 2    | Post     | /login    |                                                              |                                                              |
-| 3    | Post     | /logout   |                                                              |                                                              |
-|      |          |           |                                                              |                                                              |
+| 序号 | 请求方式 | 路由地址           | 输入（x-www-form-urlencoded）                                | 输出                                                         |
+| ---- | -------- | ------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| 1    | Get      | /version           |                                                              | StatusCode: 200 （版本号）                                   |
+| 2    | Post     | /register          | username string<br />password string<br />email string<br />phone string<br />full_name<br />profile_picture | StatusCode: 200 （注册成功）<br />StatusCode: 409   (用户已存在)<br />StatusCode: 400 （无效输入）<br />StatusCode: 500   (服务器未知错误) |
+| 3    | Post     | /login             | username string<br />password string                         | StatusCode:200 （登录成功）<br />StatusCode:401 （用户名或密码不正确） |
+| 4    | Post     | /logout            | username string<br />password string<br />==**or**==<br />token(**Authorization Bearer Token**) | StatusCode:200 （登出成功）<br />StatusCode:401 （用户名、密码或token不正确） |
+| 5    | Get      | /check-token-valid | token(**Authorization Bearer Token**)                        | StatusCode:200 （token有效）<br />StatusCode:401 （用户名、密码或token不正确） |
 
 
 

@@ -34,16 +34,9 @@ func (a Account) GetTableType() string {
 	return "Account"
 }
 
-func (a Account) Login(username, password string) (bool, error) {
-	return false, nil
-}
-
-func (a Account) Logout() error {
-	return nil
-}
-
 type UserGroup struct {
 	GroupId       string    // 用户组ID
+	GroupLeads    string    // 组长ID
 	GroupName     string    // 用户组名称
 	Description   string    // 用户组描述
 	Permissions   []string  // 用户组权限（可以是权限名称的列表）

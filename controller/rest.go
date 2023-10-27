@@ -19,12 +19,10 @@ func NewRestController(db *service.Server) *RestController {
 	return &RestController{db}
 }
 
-// Version
 func (r *RestController) Version(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"Message": "1.0.0"})
 }
 
-// Register
 func (r *RestController) Register(c *gin.Context) {
 	var req pb.RegisterReq
 
@@ -57,7 +55,6 @@ func (r *RestController) Register(c *gin.Context) {
 	}
 }
 
-// Login
 func (r *RestController) Login(c *gin.Context) {
 	var req pb.LoginReq
 	if err := c.ShouldBind(&req); err != nil {
@@ -83,7 +80,6 @@ func (r *RestController) Login(c *gin.Context) {
 	}
 }
 
-// Logout
 func (r *RestController) Logout(c *gin.Context) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
@@ -116,18 +112,18 @@ func (r *RestController) Logout(c *gin.Context) {
 	})
 }
 
-// CheckTokenValid
 func (r *RestController) CheckTokenValid(c *gin.Context) {
 	verifyToken(c, func(account *src.Account, token string) {
 		err := r.server.VerifyToken(account, token)
 		if err != nil {
 			c.JSON(401, gin.H{"Message": "the token is invalid"})
+			return
 		}
 		c.JSON(http.StatusOK, gin.H{"Message": "the token is valid"})
+		return
 	})
 }
 
-// SearchRole
 func (r *RestController) SearchRole(c *gin.Context) {
 	verifyToken(c, func(account *src.Account, token string) {
 		roleStr, err := r.server.SearchRole(account)
@@ -145,7 +141,6 @@ func (r *RestController) SearchRole(c *gin.Context) {
 	})
 }
 
-// SearchGroup
 func (r *RestController) SearchGroup(c *gin.Context) {
 	verifyToken(c, func(account *src.Account, token string) {
 		groupStr, err := r.server.SearchGroup(account)
@@ -163,7 +158,6 @@ func (r *RestController) SearchGroup(c *gin.Context) {
 	})
 }
 
-// SearchPermission
 func (r *RestController) SearchPermission(c *gin.Context) {
 	verifyToken(c, func(account *src.Account, token string) {
 		groupStr, err := r.server.SearchGroup(account)
@@ -181,7 +175,6 @@ func (r *RestController) SearchPermission(c *gin.Context) {
 	})
 }
 
-// Edit
 func (r *RestController) Edit(c *gin.Context) {
 	verifyToken(c, func(account *src.Account, token string) {
 		err := r.server.VerifyToken(account, token)

@@ -58,11 +58,13 @@ func (s *Server) Login(account src.Account) (string, error) {
 			if user.Status == "online" {
 				valid, _ := utils.IsTokenValid(user.SessionToken)
 				if !valid {
-					user.Status = "offline"
+					sessionToken, _ := utils.GenerateSessionToken(user.Username)
+					user.SessionToken = sessionToken
 					err = db.Update(user)
 					if err != nil {
 						return "", err
 					}
+					return user.SessionToken, nil
 				}
 				return "", fmt.Errorf("the account has been logged in, you need to log in again, please logout first")
 			}

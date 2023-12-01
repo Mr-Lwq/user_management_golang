@@ -18,7 +18,7 @@ import (
 	"os"
 	"reflect"
 	"time"
-	"user_management_golang/src"
+	"user_management_golang/core"
 	"user_management_golang/utils"
 )
 
@@ -85,7 +85,7 @@ func (myBolt *MyBolt) init() {
 		var password []byte
 		fmt.Println("first setting beginning...")
 		// 完成用户表的初始化信息创建
-		admin := src.Account{
+		admin := core.Account{
 			UserId:   "admin",
 			Username: "admin",
 			Password: "88888888",
@@ -116,7 +116,7 @@ func (myBolt *MyBolt) init() {
 		}
 		fmt.Println("[UserId: admin, Password: 88888888] " + "Create account table success. Add root account.")
 		// 完成用户组表的初始化信息创建
-		userGroup := src.UserGroup{
+		userGroup := core.UserGroup{
 			GroupId:       "administrators",
 			GroupLeads:    "admin",
 			GroupName:     "administrators",
@@ -132,7 +132,7 @@ func (myBolt *MyBolt) init() {
 		}
 		fmt.Println("[GroupId: group, GroupName: administrators] " + "Create user_group table success. Add administrator group.")
 		// 完成角色表的初始化信息创建
-		role := src.Role{
+		role := core.Role{
 			RoleId:      "admin",
 			RoleName:    "admin",
 			Description: "",
@@ -157,21 +157,21 @@ func (myBolt *MyBolt) Close() {
 }
 
 // Insert inserts data into a BoltDB bucket based on the provided BoltTable.
-func (myBolt *MyBolt) Insert(tb src.TableData) error {
+func (myBolt *MyBolt) Insert(tb core.TableData) error {
 	var tableName string
 	var key string
 	var value []byte
 
 	switch t := tb.(type) {
-	case src.Account:
+	case core.Account:
 		tableName = myBolt.AccountTable
 		key = t.UserId
 		value, _ = json.Marshal(t)
-	case src.UserGroup:
+	case core.UserGroup:
 		tableName = myBolt.UserGroupTable
 		key = t.GroupId
 		value, _ = json.Marshal(t)
-	case src.Role:
+	case core.Role:
 		tableName = myBolt.RoleTable
 		key = t.RoleId
 		value, _ = json.Marshal(t)
@@ -195,38 +195,38 @@ func (myBolt *MyBolt) Insert(tb src.TableData) error {
 // Search 从 BoltDB 中检索数据并返回一个接口，该接口表示一个指向某个结构体指针的值。
 // 具体的结构体类型取决于传递给函数的 table 参数的类型。
 //
-// 如果 table 参数是 src.Account 类型，返回值将是 *src.Account。
-// 如果 table 参数是 src.UserGroup 类型，返回值将是 *src.UserGroup。
-// 如果 table 参数是 src.Role 类型，返回值将是 *src.Role。
+// 如果 table 参数是 core.Account 类型，返回值将是 *core.Account。
+// 如果 table 参数是 core.UserGroup 类型，返回值将是 *core.UserGroup。
+// 如果 table 参数是 core.Role 类型，返回值将是 *core.Role。
 //
 // 如果在检索或解析数据时发生错误，将返回错误。
-func (myBolt *MyBolt) Search(tb src.TableData) (interface{}, error) {
+func (myBolt *MyBolt) Search(tb core.TableData) (interface{}, error) {
 	var tableName string
 	var simpleStruct interface{}
 	var key string
 	switch t := tb.(type) {
-	case *src.Account:
-		simpleStruct = &src.Account{}
+	case *core.Account:
+		simpleStruct = &core.Account{}
 		tableName = myBolt.AccountTable
 		key = t.UserId
-	case src.Account:
-		simpleStruct = &src.Account{}
+	case core.Account:
+		simpleStruct = &core.Account{}
 		tableName = myBolt.AccountTable
 		key = t.UserId
-	case *src.UserGroup:
-		simpleStruct = &src.UserGroup{}
+	case *core.UserGroup:
+		simpleStruct = &core.UserGroup{}
 		tableName = myBolt.UserGroupTable
 		key = t.GroupId
-	case src.UserGroup:
-		simpleStruct = &src.UserGroup{}
+	case core.UserGroup:
+		simpleStruct = &core.UserGroup{}
 		tableName = myBolt.UserGroupTable
 		key = t.GroupId
-	case *src.Role:
-		simpleStruct = &src.Role{}
+	case *core.Role:
+		simpleStruct = &core.Role{}
 		tableName = myBolt.RoleTable
 		key = t.RoleId
-	case src.Role:
-		simpleStruct = &src.Role{}
+	case core.Role:
+		simpleStruct = &core.Role{}
 		tableName = myBolt.RoleTable
 		key = t.RoleId
 	default:
@@ -262,11 +262,11 @@ func (myBolt *MyBolt) PrintAll(tableName string) error {
 
 	switch tableName {
 	case myBolt.AccountTable:
-		simpleStruct = &src.Account{}
+		simpleStruct = &core.Account{}
 	case myBolt.UserGroupTable:
-		simpleStruct = &src.UserGroup{}
+		simpleStruct = &core.UserGroup{}
 	case myBolt.RoleTable:
-		simpleStruct = &src.Role{}
+		simpleStruct = &core.Role{}
 	default:
 		return fmt.Errorf("unknown bucket name")
 	}
@@ -339,32 +339,32 @@ func (myBolt *MyBolt) IsExist(tableName string, id string) (bool, error) {
 }
 
 // Update Helps users edit changeable properties
-func (myBolt *MyBolt) Update(tb src.TableData) error {
+func (myBolt *MyBolt) Update(tb core.TableData) error {
 	var bucketName string
 	var key string
 	var value []byte
 	switch t := tb.(type) {
-	case *src.Account:
+	case *core.Account:
 		bucketName = myBolt.AccountTable
 		key = t.UserId
 		value, _ = json.Marshal(t)
-	case src.Account:
+	case core.Account:
 		bucketName = myBolt.AccountTable
 		key = t.UserId
 		value, _ = json.Marshal(t)
-	case *src.UserGroup:
+	case *core.UserGroup:
 		bucketName = myBolt.UserGroupTable
 		key = t.GroupId
 		value, _ = json.Marshal(t)
-	case src.UserGroup:
+	case core.UserGroup:
 		bucketName = myBolt.UserGroupTable
 		key = t.GroupId
 		value, _ = json.Marshal(t)
-	case *src.Role:
+	case *core.Role:
 		bucketName = myBolt.RoleTable
 		key = t.RoleId
 		value, _ = json.Marshal(t)
-	case src.Role:
+	case core.Role:
 		bucketName = myBolt.RoleTable
 		key = t.RoleId
 		value, _ = json.Marshal(t)
@@ -386,26 +386,26 @@ func (myBolt *MyBolt) Update(tb src.TableData) error {
 }
 
 // Del Helps administrator delete a common user
-func (myBolt *MyBolt) Del(tb src.TableData) error {
+func (myBolt *MyBolt) Del(tb core.TableData) error {
 	var bucketName string
 	var key string
 	switch t := tb.(type) {
-	case *src.Account:
+	case *core.Account:
 		bucketName = myBolt.AccountTable
 		key = t.UserId
-	case src.Account:
+	case core.Account:
 		bucketName = myBolt.AccountTable
 		key = t.UserId
-	case *src.UserGroup:
+	case *core.UserGroup:
 		bucketName = myBolt.UserGroupTable
 		key = t.GroupId
-	case src.UserGroup:
+	case core.UserGroup:
 		bucketName = myBolt.UserGroupTable
 		key = t.GroupId
-	case *src.Role:
+	case *core.Role:
 		bucketName = myBolt.RoleTable
 		key = t.RoleId
-	case src.Role:
+	case core.Role:
 		bucketName = myBolt.RoleTable
 		key = t.RoleId
 	default:

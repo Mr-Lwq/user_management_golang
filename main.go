@@ -82,6 +82,7 @@ func main() {
 		r.GET("/check-token-valid", restAPI.CheckTokenValid)
 		r.GET("/search-role", restAPI.SearchRole)
 		r.GET("/search-group", restAPI.SearchGroup)
+		r.GET("/get-userid", restAPI.GetUserId)
 		//r.GET("/search-permission", restAPI.CheckTokenValid)
 		r.PUT("/edit", restAPI.Edit)
 		//r.DELETE("/del-role", restAPI.CheckTokenValid)

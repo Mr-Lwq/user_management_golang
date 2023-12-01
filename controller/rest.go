@@ -5,9 +5,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
+	"user_management_golang/core"
 	pb "user_management_golang/protoc/user_service"
 	"user_management_golang/service"
-	"user_management_golang/src"
 	"user_management_golang/utils"
 )
 
@@ -31,7 +31,7 @@ func (r *RestController) Register(c *gin.Context) {
 		return
 	}
 	sessionToken, _ := utils.GenerateSessionToken(req.Username)
-	account := src.Account{
+	account := core.Account{
 		UserId:         req.Username,
 		Username:       req.Username,
 		Password:       req.Password,
@@ -61,14 +61,14 @@ func (r *RestController) Login(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"Message": err.Error()})
 		return
 	}
-	account := src.Account{
+	account := core.Account{
 		UserId:   req.Username,
 		Username: req.Username,
 		Password: req.Password,
 	}
 	token, err := r.server.Login(account)
 	if err != nil {
-		c.JSON(401, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"Message":      err.Error(),
 			"SessionToken": "",
 		})
@@ -84,7 +84,7 @@ func (r *RestController) Logout(c *gin.Context) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 	if username != "" && password != "" {
-		account := src.Account{
+		account := core.Account{
 			UserId:   username,
 			Password: password,
 		}
@@ -99,7 +99,7 @@ func (r *RestController) Logout(c *gin.Context) {
 		return
 	}
 
-	verifyToken(c, func(account *src.Account, token string) {
+	verifyToken(c, func(account *core.Account, token string) {
 		err := r.server.Logout(*account)
 		if err != nil {
 			c.JSON(401, gin.H{"Message": err.Error()})
@@ -113,7 +113,7 @@ func (r *RestController) Logout(c *gin.Context) {
 }
 
 func (r *RestController) CheckTokenValid(c *gin.Context) {
-	verifyToken(c, func(account *src.Account, token string) {
+	verifyToken(c, func(account *core.Account, token string) {
 		err := r.server.VerifyToken(account, token)
 		if err != nil {
 			c.JSON(401, gin.H{"Message": "the token is invalid"})
@@ -125,7 +125,7 @@ func (r *RestController) CheckTokenValid(c *gin.Context) {
 }
 
 func (r *RestController) SearchRole(c *gin.Context) {
-	verifyToken(c, func(account *src.Account, token string) {
+	verifyToken(c, func(account *core.Account, token string) {
 		roleStr, err := r.server.SearchRole(account)
 		if err != nil {
 			c.JSON(500, gin.H{"Message": "server internal error"})
@@ -142,7 +142,7 @@ func (r *RestController) SearchRole(c *gin.Context) {
 }
 
 func (r *RestController) SearchGroup(c *gin.Context) {
-	verifyToken(c, func(account *src.Account, token string) {
+	verifyToken(c, func(account *core.Account, token string) {
 		groupStr, err := r.server.SearchGroup(account)
 		if err != nil {
 			c.JSON(500, gin.H{"Message": "Server internal error"})
@@ -159,7 +159,7 @@ func (r *RestController) SearchGroup(c *gin.Context) {
 }
 
 func (r *RestController) SearchPermission(c *gin.Context) {
-	verifyToken(c, func(account *src.Account, token string) {
+	verifyToken(c, func(account *core.Account, token string) {
 		groupStr, err := r.server.SearchGroup(account)
 		if err != nil {
 			c.JSON(500, gin.H{"Message": "Server internal error"})
@@ -176,7 +176,7 @@ func (r *RestController) SearchPermission(c *gin.Context) {
 }
 
 func (r *RestController) Edit(c *gin.Context) {
-	verifyToken(c, func(account *src.Account, token string) {
+	verifyToken(c, func(account *core.Account, token string) {
 		err := r.server.VerifyToken(account, token)
 		if err != nil {
 			c.JSON(401, gin.H{"Message": "the token has expired"})
@@ -187,14 +187,28 @@ func (r *RestController) Edit(c *gin.Context) {
 	})
 }
 
+func (r *RestController) GetUserId(c *gin.Context) {
+	verifyToken(c, func(account *core.Account, token string) {
+		err := r.server.VerifyToken(account, token)
+		if err != nil {
+			c.JSON(401, gin.H{"Message": "the token has expired"})
+			return
+		} else {
+			userId, _ := utils.GetUserIdFromToken(token)
+			c.JSON(401, gin.H{"Message": userId})
+			return
+		}
+	})
+}
+
 // CreateRole
 //func (r *RestController) CreateRole(c *gin.Context) {
-//	verifyToken(c, func(account *src.Account, token string) {
+//	verifyToken(c, func(account *core.Account, token string) {
 //		r.server.
 //	})
 //}
 
-func verifyToken(c *gin.Context, callFunc func(account *src.Account, token string)) {
+func verifyToken(c *gin.Context, callFunc func(account *core.Account, token string)) {
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
 		c.JSON(401, gin.H{"Message": "missing Authorization header"})
@@ -221,7 +235,7 @@ func verifyToken(c *gin.Context, callFunc func(account *src.Account, token strin
 		return
 	} else {
 		if success {
-			account := &src.Account{
+			account := &core.Account{
 				UserId: userId,
 			}
 			callFunc(account, token)

@@ -14,7 +14,7 @@ import (
 	"reflect"
 	"strings"
 	"time"
-	"user_management_golang/src"
+	"user_management_golang/core"
 )
 
 type MysqlCfg struct {
@@ -80,7 +80,7 @@ func (mysql *Mysql) init() {
 			}
 		}
 		fmt.Println("First setting beginning...")
-		admin := src.Account{
+		admin := core.Account{
 			UserId:         "admin",
 			Username:       "admin",
 			Password:       "88888888",
@@ -101,7 +101,7 @@ func (mysql *Mysql) init() {
 			log.Fatal(err)
 		}
 		fmt.Println("[UserId: admin, Password: 88888888] Create account table success. Add root account.")
-		userGroup := src.UserGroup{
+		userGroup := core.UserGroup{
 			GroupId:       "administrators",
 			GroupName:     "administrators",
 			GroupLeads:    "admin",
@@ -116,7 +116,7 @@ func (mysql *Mysql) init() {
 			log.Fatal(err)
 		}
 		fmt.Println("[GroupId: group, GroupName: administrators] Create user_group table success. Add administrator group.")
-		role := src.Role{
+		role := core.Role{
 			RoleId:      "admin",
 			RoleName:    "admin",
 			Description: "",
@@ -143,7 +143,7 @@ func (mysql *Mysql) Close() {
 }
 
 // Insert helps you insert a new record into mysql db.
-func (mysql *Mysql) Insert(tb src.TableData) error {
+func (mysql *Mysql) Insert(tb core.TableData) error {
 	tableType := tb.GetTableType()
 	var tableName string
 	switch tableType {
@@ -196,20 +196,20 @@ func (mysql *Mysql) Insert(tb src.TableData) error {
 }
 
 // Update helps you update existing records from the mysql db.
-func (mysql *Mysql) Update(tb src.TableData) error {
+func (mysql *Mysql) Update(tb core.TableData) error {
 	var tableName string
 	var idValue string
 	var idColName string
 	switch t := tb.(type) {
-	case src.Account:
+	case core.Account:
 		tableName = mysql.AccountTable
 		idValue = t.UserId
 		idColName = "UserId"
-	case src.UserGroup:
+	case core.UserGroup:
 		tableName = mysql.UserGroupTable
 		idValue = t.GroupId
 		idColName = "GroupId"
-	case src.Role:
+	case core.Role:
 		tableName = mysql.RoleTable
 		idValue = t.RoleId
 		idColName = "RoleId"
@@ -262,20 +262,20 @@ func (mysql *Mysql) Update(tb src.TableData) error {
 }
 
 // Del helps you delete existing records from the mysql db.
-func (mysql *Mysql) Del(tb src.TableData) error {
+func (mysql *Mysql) Del(tb core.TableData) error {
 	var tableName string
 	var idValue string
 	var idColName string
 	switch t := tb.(type) {
-	case src.Account:
+	case core.Account:
 		tableName = mysql.AccountTable
 		idValue = t.UserId
 		idColName = "UserId"
-	case src.UserGroup:
+	case core.UserGroup:
 		tableName = mysql.UserGroupTable
 		idValue = t.GroupId
 		idColName = "GroupId"
-	case src.Role:
+	case core.Role:
 		tableName = mysql.RoleTable
 		idValue = t.RoleId
 		idColName = "RoleId"
@@ -296,22 +296,22 @@ func (mysql *Mysql) Del(tb src.TableData) error {
 }
 
 // Search helps you query the existing records in the database.
-func (mysql *Mysql) Search(tb src.TableData) (interface{}, error) {
+func (mysql *Mysql) Search(tb core.TableData) (interface{}, error) {
 	var tableName string
 	var idValue string
 	var idColName string
 	var simpleStruct interface{}
 	var err error
 	switch t := tb.(type) {
-	case src.Account:
+	case core.Account:
 		tableName = mysql.AccountTable
 		idValue = t.UserId
 		idColName = "UserId"
-	case src.UserGroup:
+	case core.UserGroup:
 		tableName = mysql.UserGroupTable
 		idValue = t.GroupId
 		idColName = "GroupId"
-	case src.Role:
+	case core.Role:
 		tableName = mysql.RoleTable
 		idValue = t.RoleId
 		idColName = "RoleId"
@@ -333,7 +333,7 @@ func (mysql *Mysql) Search(tb src.TableData) (interface{}, error) {
 	if rows.Next() {
 		switch tableName {
 		case mysql.AccountTable:
-			var acount src.Account
+			var acount core.Account
 			var rolesStr, groupsStr, lastLoginAtStr, createAtStr, updatedAtStr string
 			err = rows.Scan(
 				&acount.Password,
@@ -366,7 +366,7 @@ func (mysql *Mysql) Search(tb src.TableData) (interface{}, error) {
 			return simpleStruct, nil
 
 		case mysql.UserGroupTable:
-			var group src.UserGroup
+			var group core.UserGroup
 			var lastUpdatedAtStr, createAtStr, permissionStr, membersStr string
 			err = rows.Scan(
 				&createAtStr,
@@ -392,7 +392,7 @@ func (mysql *Mysql) Search(tb src.TableData) (interface{}, error) {
 			return simpleStruct, nil
 
 		case mysql.RoleTable:
-			var role src.Role
+			var role core.Role
 			var createAtStr, permissionStr string
 
 			err = rows.Scan(

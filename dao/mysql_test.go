@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 	"time"
-	"user_management_golang/src"
+	"user_management_golang/core"
 )
 
 // 创建创建表和默认用户创建
@@ -50,7 +50,7 @@ func TestMysql_Insert(t *testing.T) {
 		"3307",
 		"user_management"}
 	mysql, _ := NewMysql(cfg)
-	admin := src.Account{
+	admin := core.Account{
 		UserId:         "admin1",
 		Username:       "admin1",
 		Password:       "88888888",
@@ -83,7 +83,7 @@ func TestMysql_Update(t *testing.T) {
 		"3307",
 		"user_management"}
 	mysql, _ := NewMysql(cfg)
-	admin := src.Account{
+	admin := core.Account{
 		UserId:         "admin1",
 		Username:       "admin1",
 		Password:       "88888",
@@ -116,7 +116,7 @@ func TestMysql_Del(t *testing.T) {
 		"3307",
 		"user_management"}
 	mysql, _ := NewMysql(cfg)
-	admin := src.Account{
+	admin := core.Account{
 		UserId:         "admin1",
 		Username:       "admin1",
 		Password:       "88888",
@@ -149,7 +149,7 @@ func TestMysql_Search(t *testing.T) {
 		"3307",
 		"user_management"}
 	mysql, _ := NewMysql(cfg)
-	//admin := src.Account{
+	//admin := core.Account{
 	//	UserId:         "admin",
 	//	Username:       "admin",
 	//	Password:       "88888",
@@ -165,10 +165,10 @@ func TestMysql_Search(t *testing.T) {
 	//	ProfilePicture: "",
 	//	UserGroups:     []string{"administrators"},
 	//}
-	//role := src.Role{
+	//role := core.Role{
 	//	RoleId: "admin",
 	//}
-	group := src.UserGroup{
+	group := core.UserGroup{
 		GroupId: "administrators11",
 	}
 	result, err := mysql.Search(group)
@@ -176,9 +176,9 @@ func TestMysql_Search(t *testing.T) {
 		fmt.Printf("%v", err)
 	} else {
 		// 检查查询结果是否与预期相符
-		retrievedUser, ok := result.(src.UserGroup)
+		retrievedUser, ok := result.(core.UserGroup)
 		if !ok {
-			t.Fatalf("Expected result type: *src.Account, got: %T", result)
+			t.Fatalf("Expected result type: *core.Account, got: %T", result)
 		}
 
 		// 检查其他字段...

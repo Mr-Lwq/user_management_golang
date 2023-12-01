@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 	"time"
-	"user_management_golang/src"
+	"user_management_golang/core"
 )
 
 // Test1 【嵌入式键值存储数据库】能否正常创建
@@ -26,7 +26,7 @@ func TestMyBolt_Insert(t *testing.T) {
 		fmt.Println(err, "连接失败！")
 		return
 	}
-	user := src.Account{
+	user := core.Account{
 		UserId:         "user",
 		Username:       "user",
 		Password:       "88888888",
@@ -65,7 +65,7 @@ func TestMyBolt_Update(t *testing.T) {
 		fmt.Println(err, "连接失败！")
 		return
 	}
-	user := src.Account{
+	user := core.Account{
 		UserId:         "user",
 		Username:       "user",
 		Password:       "88888",
@@ -94,7 +94,7 @@ func TestMyBolt_Del(t *testing.T) {
 		fmt.Println(err, "连接失败！")
 		return
 	}
-	user := src.Account{
+	user := core.Account{
 		UserId:         "user",
 		Username:       "user",
 		Password:       "",
@@ -123,7 +123,7 @@ func TestMyBolt_Search(t *testing.T) {
 		fmt.Println(err, "连接失败！")
 		return
 	}
-	user := src.Account{
+	user := core.Account{
 		UserId:         "admin",
 		Username:       "admin",
 		Password:       "",
@@ -146,9 +146,9 @@ func TestMyBolt_Search(t *testing.T) {
 	}
 
 	// 检查查询结果是否与预期相符
-	retrievedUser, ok := result.(*src.Account)
+	retrievedUser, ok := result.(*core.Account)
 	if !ok {
-		t.Fatalf("Expected result type: *src.Account, got: %T", result)
+		t.Fatalf("Expected result type: *core.Account, got: %T", result)
 	}
 
 	// 这里可以检查结构体字段的值是否符合预期

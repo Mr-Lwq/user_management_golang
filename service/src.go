@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 	"user_management_golang/dao"
-	"user_management_golang/src"
+	"user_management_golang/core"
 	"user_management_golang/utils"
 )
 
@@ -15,7 +15,7 @@ type Server struct {
 }
 
 // UserRegister
-func (s *Server) UserRegister(account src.Account) (bool, error) {
+func (s *Server) UserRegister(account core.Account) (bool, error) {
 	var db = s.Db
 	var err error
 
@@ -45,15 +45,15 @@ func (s *Server) UserRegister(account src.Account) (bool, error) {
 }
 
 // Login
-func (s *Server) Login(account src.Account) (string, error) {
+func (s *Server) Login(account core.Account) (string, error) {
 	var db = s.Db
 	result, err := db.Search(account)
 	if err != nil {
 		return "", fmt.Errorf("username error, not found")
 	} else {
-		user, ok := result.(*src.Account)
+		user, ok := result.(*core.Account)
 		if !ok {
-			return "", fmt.Errorf("expected result type: *src.Account, got: %T", result)
+			return "", fmt.Errorf("expected result type: *core.Account, got: %T", result)
 		} else {
 			if user.Status == "online" {
 				valid, _ := utils.IsTokenValid(user.SessionToken)
@@ -87,12 +87,12 @@ func (s *Server) Login(account src.Account) (string, error) {
 }
 
 // Logout
-func (s *Server) Logout(account src.Account) error {
+func (s *Server) Logout(account core.Account) error {
 	var db = s.Db
 	result, _ := db.Search(account)
-	user, ok := result.(*src.Account)
+	user, ok := result.(*core.Account)
 	if !ok {
-		return fmt.Errorf("expected result type: *src.Account, got: %T", result)
+		return fmt.Errorf("expected result type: *core.Account, got: %T", result)
 	} else {
 		if user.Status == "offline" {
 			return fmt.Errorf("the account is offline, please log in first if you need to log out")
@@ -110,15 +110,15 @@ func (s *Server) Logout(account src.Account) error {
 }
 
 // LogoutByCredentials
-func (s *Server) LogoutByCredentials(account src.Account) error {
+func (s *Server) LogoutByCredentials(account core.Account) error {
 	var db = s.Db
 	result, err := db.Search(account)
 	if err != nil {
 		return fmt.Errorf("username error, not found")
 	} else {
-		user, ok := result.(*src.Account)
+		user, ok := result.(*core.Account)
 		if !ok {
-			return fmt.Errorf("expected result type: *src.Account, got: %T", result)
+			return fmt.Errorf("expected result type: *core.Account, got: %T", result)
 		} else {
 			err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(account.Password))
 			if err != nil {
@@ -142,15 +142,15 @@ func (s *Server) LogoutByCredentials(account src.Account) error {
 }
 
 // SearchRole
-func (s *Server) SearchRole(account *src.Account) (string, error) {
+func (s *Server) SearchRole(account *core.Account) (string, error) {
 	var db = s.Db
 	result, err := db.Search(account)
 	if err != nil {
 		return "", fmt.Errorf("username error, not found")
 	} else {
-		user, ok := result.(*src.Account)
+		user, ok := result.(*core.Account)
 		if !ok {
-			return "", fmt.Errorf("expected result type: *src.Account, got: %T", result)
+			return "", fmt.Errorf("expected result type: *core.Account, got: %T", result)
 		} else {
 			*account = *user
 			return strings.Join(user.Roles, ","), nil
@@ -159,15 +159,15 @@ func (s *Server) SearchRole(account *src.Account) (string, error) {
 }
 
 // SearchGroup
-func (s *Server) SearchGroup(account *src.Account) (string, error) {
+func (s *Server) SearchGroup(account *core.Account) (string, error) {
 	var db = s.Db
 	result, err := db.Search(account)
 	if err != nil {
 		return "", fmt.Errorf("server internal error")
 	} else {
-		user, ok := result.(*src.Account)
+		user, ok := result.(*core.Account)
 		if !ok {
-			return "", fmt.Errorf("expected result type: *src.Account, got: %T", result)
+			return "", fmt.Errorf("expected result type: *core.Account, got: %T", result)
 		} else {
 			*account = *user
 			return strings.Join(user.UserGroups, ","), nil
@@ -176,15 +176,15 @@ func (s *Server) SearchGroup(account *src.Account) (string, error) {
 }
 
 // SearchPermission
-//func (s *Server) SearchPermission(account *src.Account) (string, error){
+//func (s *Server) SearchPermission(account *core.Account) (string, error){
 //	var db = s.Db
 //	result, err := db.Search(account)
 //	if err != nil {
 //		return "", fmt.Errorf("username error, not found")
 //	} else {
-//		user, ok := result.(*src.Account)
+//		user, ok := result.(*core.Account)
 //		if !ok {
-//			return "", fmt.Errorf("expected result type: *src.Account, got: %T", result)
+//			return "", fmt.Errorf("expected result type: *core.Account, got: %T", result)
 //		} else {
 //			return strings.Join(, ","), nil
 //		}
@@ -192,15 +192,15 @@ func (s *Server) SearchGroup(account *src.Account) (string, error) {
 //}
 
 // Edit
-func (s *Server) Edit(account *src.Account) error {
+func (s *Server) Edit(account *core.Account) error {
 	var db = s.Db
 	result, err := db.Search(account)
 	if err != nil {
 		return fmt.Errorf("server internal error")
 	} else {
-		user, ok := result.(*src.Account)
+		user, ok := result.(*core.Account)
 		if !ok {
-			return fmt.Errorf("expected result type: *src.Account, got: %T", result)
+			return fmt.Errorf("expected result type: *core.Account, got: %T", result)
 		} else {
 			user.Username = account.Username
 			user.Email = account.Email
@@ -217,20 +217,20 @@ func (s *Server) Edit(account *src.Account) error {
 }
 
 // CreateRole
-func (s *Server) CreateRole(account *src.Account) {
+func (s *Server) CreateRole(account *core.Account) {
 
 }
 
 // VerifyToken
-func (s *Server) VerifyToken(account *src.Account, token string) error {
+func (s *Server) VerifyToken(account *core.Account, token string) error {
 	var db = s.Db
 	result, err := db.Search(account)
 	if err != nil {
 		return fmt.Errorf("server internal error")
 	} else {
-		user, ok := result.(*src.Account)
+		user, ok := result.(*core.Account)
 		if !ok {
-			return fmt.Errorf("expected result type: *src.Account, got: %T", result)
+			return fmt.Errorf("expected result type: *core.Account, got: %T", result)
 		} else {
 			if user.SessionToken == token {
 				return nil

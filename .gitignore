@@ -1,2 +1,4 @@
 BoltDB*
 .idea
+**/__pycache__
+**/.idea/*

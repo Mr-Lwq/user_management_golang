@@ -21,13 +21,14 @@ type Account struct {
 	Phone          string    // 电话
 	FullName       string    // 全名
 	Roles          []string  // 角色列表
+	UserGroups     []string  // 用户组
+	Permissions    []string  // 用户组权限（可以是权限名称的列表）
 	Status         string    // 账户状态 (激活、锁定、禁用等)
+	COP            int       // 目前该账号在线数量
 	CreatedAt      time.Time // 账户创建时间
 	UpdatedAt      time.Time // 账户更新时间
 	LastLoginAt    time.Time // 最后登录时间
-	SessionToken   string    // 用户会话令牌
 	ProfilePicture string    // 个人资料图片的URL或文件路径
-	UserGroups     []string  // 用户组
 }
 
 func (a Account) GetTableType() string {

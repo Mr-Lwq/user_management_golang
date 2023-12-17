@@ -878,7 +878,7 @@ var file_user_service_proto_goTypes = []interface{}{
 var file_user_service_proto_depIdxs = []int32{
 	0,  // 0: userService.UserService.Register:input_type -> userService.RegisterReq
 	2,  // 1: userService.UserService.Login:input_type -> userService.LoginReq
-	3,  // 2: userService.UserService.Logout:input_type -> userService.NoneReq
+	3,  // 2: userService.UserService.LogoutByToken:input_type -> userService.NoneReq
 	3,  // 3: userService.UserService.SearchRole:input_type -> userService.NoneReq
 	3,  // 4: userService.UserService.SearchGroup:input_type -> userService.NoneReq
 	3,  // 5: userService.UserService.SearchPermission:input_type -> userService.NoneReq
@@ -892,7 +892,7 @@ var file_user_service_proto_depIdxs = []int32{
 	11, // 13: userService.UserService.ShowAllRole:input_type -> userService.ShowAllRoleReq
 	1,  // 14: userService.UserService.Register:output_type -> userService.Stdout
 	1,  // 15: userService.UserService.Login:output_type -> userService.Stdout
-	1,  // 16: userService.UserService.Logout:output_type -> userService.Stdout
+	1,  // 16: userService.UserService.LogoutByToken:output_type -> userService.Stdout
 	1,  // 17: userService.UserService.SearchRole:output_type -> userService.Stdout
 	1,  // 18: userService.UserService.SearchGroup:output_type -> userService.Stdout
 	1,  // 19: userService.UserService.SearchPermission:output_type -> userService.Stdout

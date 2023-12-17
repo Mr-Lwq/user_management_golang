@@ -19,7 +19,6 @@ import (
 	"reflect"
 	"time"
 	"user_management_golang/core"
-	"user_management_golang/utils"
 )
 
 var shortFormat = "2006-01-02 15:04:05"
@@ -82,34 +81,29 @@ func (myBolt *MyBolt) init() {
 				return
 			}
 		}
-		var password []byte
+
 		fmt.Println("first setting beginning...")
 		// 完成用户表的初始化信息创建
 		admin := core.Account{
-			UserId:   "admin",
-			Username: "admin",
-			Password: "88888888",
-			Email:    "",
-			Phone:    "",
-			FullName: "超级管理员",
-			Roles: []string{
-				"administrators",
-			},
-			Status:         "offline",
+			UserId:         "admin",
+			Username:       "admin",
+			Password:       "88888888",
+			Email:          "",
+			Phone:          "",
+			FullName:       "超级管理员",
+			Roles:          []string{"administrators"},
+			UserGroups:     []string{"administrators"},
+			Permissions:    []string{"administrators"},
+			Status:         "activate",
+			COP:            0,
 			CreatedAt:      time.Now(),
 			UpdatedAt:      time.Now(),
 			LastLoginAt:    time.Now(),
-			SessionToken:   "",
 			ProfilePicture: "",
-			UserGroups: []string{
-				"administrators",
-			},
 		}
-		password = []byte(admin.Password)
+		password := []byte(admin.Password)
 		hashedPassword, _ := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
 		admin.Password = string(hashedPassword)
-		sessionToken, _ := utils.GenerateSessionToken(admin.UserId)
-		admin.SessionToken = sessionToken
 		err = myBolt.Insert(admin)
 		if err != nil {
 			log.Fatal(err)

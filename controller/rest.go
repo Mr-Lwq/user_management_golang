@@ -8,7 +8,6 @@ import (
 	"user_management_golang/core"
 	pb "user_management_golang/protoc/user_service"
 	"user_management_golang/service"
-	"user_management_golang/utils"
 )
 
 type RestController struct {
@@ -30,7 +29,6 @@ func (r *RestController) Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"Message": err.Error()})
 		return
 	}
-	sessionToken, _ := utils.GenerateSessionToken(req.Username)
 	account := core.Account{
 		UserId:         req.Username,
 		Username:       req.Username,
@@ -39,8 +37,8 @@ func (r *RestController) Register(c *gin.Context) {
 		Phone:          req.Phone,
 		FullName:       req.FullName,
 		ProfilePicture: req.ProfilePicture,
+		COP:            0,
 		Status:         "activate",
-		SessionToken:   sessionToken,
 	}
 	success, err := r.server.UserRegister(account)
 	if err != nil {
@@ -68,7 +66,7 @@ func (r *RestController) Login(c *gin.Context) {
 	}
 	token, err := r.server.Login(account)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
+		c.JSON(401, gin.H{
 			"Message":      err.Error(),
 			"SessionToken": "",
 		})
@@ -100,7 +98,7 @@ func (r *RestController) Logout(c *gin.Context) {
 	}
 
 	verifyToken(c, func(account *core.Account, token string) {
-		err := r.server.Logout(*account)
+		err := r.server.LogoutByToken(*account, token)
 		if err != nil {
 			c.JSON(401, gin.H{"Message": err.Error()})
 			return
@@ -114,7 +112,7 @@ func (r *RestController) Logout(c *gin.Context) {
 
 func (r *RestController) CheckTokenValid(c *gin.Context) {
 	verifyToken(c, func(account *core.Account, token string) {
-		err := r.server.VerifyToken(account, token)
+		err := r.server.VerifyToken(token)
 		if err != nil {
 			c.JSON(401, gin.H{"Message": "the token is invalid"})
 			return
@@ -126,16 +124,17 @@ func (r *RestController) CheckTokenValid(c *gin.Context) {
 
 func (r *RestController) SearchRole(c *gin.Context) {
 	verifyToken(c, func(account *core.Account, token string) {
+		err := r.server.VerifyToken(token)
+		if err != nil {
+			c.JSON(401, gin.H{"Message": "the token is invalid"})
+			return
+		}
 		roleStr, err := r.server.SearchRole(account)
 		if err != nil {
 			c.JSON(500, gin.H{"Message": "server internal error"})
 			return
-		}
-		if account.SessionToken == token {
-			c.JSON(http.StatusOK, gin.H{"Message": roleStr})
-			return
 		} else {
-			c.JSON(401, gin.H{"Message": "the token has expired"})
+			c.JSON(http.StatusOK, gin.H{"Message": roleStr})
 			return
 		}
 	})
@@ -143,16 +142,17 @@ func (r *RestController) SearchRole(c *gin.Context) {
 
 func (r *RestController) SearchGroup(c *gin.Context) {
 	verifyToken(c, func(account *core.Account, token string) {
-		groupStr, err := r.server.SearchGroup(account)
+		err := r.server.VerifyToken(token)
 		if err != nil {
-			c.JSON(500, gin.H{"Message": "Server internal error"})
+			c.JSON(401, gin.H{"Message": "the token is invalid"})
 			return
 		}
-		if account.SessionToken == token {
-			c.JSON(http.StatusOK, gin.H{"Message": groupStr})
+		groupStr, err := r.server.SearchGroup(account)
+		if err != nil {
+			c.JSON(500, gin.H{"Message": "server internal error"})
 			return
 		} else {
-			c.JSON(401, gin.H{"Message": "the token has expired"})
+			c.JSON(http.StatusOK, gin.H{"Message": groupStr})
 			return
 		}
 	})
@@ -160,16 +160,17 @@ func (r *RestController) SearchGroup(c *gin.Context) {
 
 func (r *RestController) SearchPermission(c *gin.Context) {
 	verifyToken(c, func(account *core.Account, token string) {
-		groupStr, err := r.server.SearchGroup(account)
+		err := r.server.VerifyToken(token)
 		if err != nil {
-			c.JSON(500, gin.H{"Message": "Server internal error"})
+			c.JSON(401, gin.H{"Message": "the token is invalid"})
 			return
 		}
-		if account.SessionToken == token {
-			c.JSON(http.StatusOK, gin.H{"Message": groupStr})
+		groupStr, err := r.server.SearchGroup(account)
+		if err != nil {
+			c.JSON(500, gin.H{"Message": "server internal error"})
 			return
 		} else {
-			c.JSON(401, gin.H{"Message": "the token has expired"})
+			c.JSON(http.StatusOK, gin.H{"Message": groupStr})
 			return
 		}
 	})
@@ -177,25 +178,25 @@ func (r *RestController) SearchPermission(c *gin.Context) {
 
 func (r *RestController) Edit(c *gin.Context) {
 	verifyToken(c, func(account *core.Account, token string) {
-		err := r.server.VerifyToken(account, token)
+		err := r.server.VerifyToken(token)
 		if err != nil {
 			c.JSON(401, gin.H{"Message": "the token has expired"})
-			return
 		} else {
 			r.server.Edit(account)
+			c.JSON(200, gin.H{"Message": "ok"})
 		}
+		return
 	})
 }
 
 func (r *RestController) GetUserId(c *gin.Context) {
 	verifyToken(c, func(account *core.Account, token string) {
-		err := r.server.VerifyToken(account, token)
+		err := r.server.VerifyToken(token)
 		if err != nil {
 			c.JSON(401, gin.H{"Message": "the token has expired"})
 			return
 		} else {
-			userId, _ := utils.GetUserIdFromToken(token)
-			c.JSON(401, gin.H{"Message": userId})
+			c.JSON(401, gin.H{"Message": account.UserId})
 			return
 		}
 	})
@@ -214,35 +215,30 @@ func verifyToken(c *gin.Context, callFunc func(account *core.Account, token stri
 		c.JSON(401, gin.H{"Message": "missing Authorization header"})
 		return
 	}
+
 	if !strings.HasPrefix(authHeader, "Bearer ") {
 		c.JSON(401, gin.H{"Message": "invalid Authorization header format"})
 		return
 	}
-	token := authHeader[len("Bearer "):]
-	_, err := utils.GetUserIdFromToken(token)
+
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+	userId, err := service.GetUserIdFromToken(token)
 	if err != nil {
 		c.JSON(401, gin.H{"Message": err.Error()})
 		return
 	}
-	success, err := utils.IsTokenValid(token)
+
+	success, err := service.IsTokenValid(token)
 	if err != nil {
 		c.JSON(401, gin.H{"Message": err.Error()})
 		return
 	}
-	userId, err := utils.GetUserIdFromToken(token)
-	if err != nil {
-		c.JSON(401, gin.H{"Message": err.Error()})
+
+	if !success {
+		c.JSON(401, gin.H{"Message": "the token has expired"})
 		return
-	} else {
-		if success {
-			account := &core.Account{
-				UserId: userId,
-			}
-			callFunc(account, token)
-			return
-		} else {
-			c.JSON(401, gin.H{"Message": "the token has expired"})
-			return
-		}
 	}
+
+	account := &core.Account{UserId: userId}
+	callFunc(account, token)
 }

@@ -21,7 +21,7 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	UserService_Register_FullMethodName         = "/userService.UserService/Register"
 	UserService_Login_FullMethodName            = "/userService.UserService/Login"
-	UserService_Logout_FullMethodName           = "/userService.UserService/Logout"
+	UserService_Logout_FullMethodName           = "/userService.UserService/LogoutByToken"
 	UserService_SearchRole_FullMethodName       = "/userService.UserService/SearchRole"
 	UserService_SearchGroup_FullMethodName      = "/userService.UserService/SearchGroup"
 	UserService_SearchPermission_FullMethodName = "/userService.UserService/SearchPermission"
@@ -221,7 +221,7 @@ func (UnimplementedUserServiceServer) Login(context.Context, *LoginReq) (*Stdout
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
 func (UnimplementedUserServiceServer) Logout(context.Context, *NoneReq) (*Stdout, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
+	return nil, status.Errorf(codes.Unimplemented, "method LogoutByToken not implemented")
 }
 func (UnimplementedUserServiceServer) SearchRole(context.Context, *NoneReq) (*Stdout, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SearchRole not implemented")
@@ -537,7 +537,7 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_Login_Handler,
 		},
 		{
-			MethodName: "Logout",
+			MethodName: "LogoutByToken",
 			Handler:    _UserService_Logout_Handler,
 		},
 		{

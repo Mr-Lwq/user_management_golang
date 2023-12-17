@@ -10,6 +10,7 @@ package dao
 import (
 	"database/sql"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"reflect"
 	"strings"
@@ -88,14 +89,18 @@ func (mysql *Mysql) init() {
 			Phone:          "",
 			FullName:       "超级管理员",
 			Roles:          []string{"administrators"},
+			UserGroups:     []string{"administrators"},
+			Permissions:    []string{"administrators"},
+			COP:            0,
 			Status:         "activate",
 			CreatedAt:      time.Now(),
 			UpdatedAt:      time.Now(),
 			LastLoginAt:    time.Now(),
-			SessionToken:   "",
 			ProfilePicture: "",
-			UserGroups:     []string{"administrators"},
 		}
+		password := []byte(admin.Password)
+		hashedPassword, _ := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
+		admin.Password = string(hashedPassword)
 		err := mysql.Insert(admin)
 		if err != nil {
 			log.Fatal(err)
@@ -320,7 +325,32 @@ func (mysql *Mysql) Search(tb core.TableData) (interface{}, error) {
 	}
 
 	// Construct the query
-	query := fmt.Sprintf("SELECT * FROM %s WHERE %s = ?", tableName, idColName)
+	var query string
+	switch tableName {
+	case mysql.AccountTable:
+		query = fmt.Sprintf(`
+        SELECT 
+            UserId, Username, Password, Email, Phone, FullName, 
+            Roles, UserGroups, Permissions, Status, COP, 
+            CreatedAt, UpdatedAt, LastLoginAt, ProfilePicture 
+        FROM %s 
+        WHERE %s = ?`, tableName, idColName)
+	case mysql.UserGroupTable:
+		query = fmt.Sprintf(`
+        SELECT 
+            GroupId, GroupLeads, GroupName, Description, Permissions, Members, 
+            CreatedAt, LastUpdatedAt
+        FROM %s 
+        WHERE %s = ?`, tableName, idColName)
+	case mysql.RoleTable:
+		query = fmt.Sprintf(`
+        SELECT 
+            RoleId, RoleName, Description, Permissions, CreatedAt
+        FROM %s 
+        WHERE %s = ?`, tableName, idColName)
+	default:
+		return nil, fmt.Errorf("there")
+	}
 
 	// Execute the query
 	rows, err := mysql.db.Query(query, idValue)
@@ -333,83 +363,75 @@ func (mysql *Mysql) Search(tb core.TableData) (interface{}, error) {
 	if rows.Next() {
 		switch tableName {
 		case mysql.AccountTable:
-			var acount core.Account
-			var rolesStr, groupsStr, lastLoginAtStr, createAtStr, updatedAtStr string
+			var account core.Account
+			var rolesStr, groupsStr, permissionsStr, lastLoginAtStr, createdAtStr, updatedAtStr string
 			err = rows.Scan(
-				&acount.Password,
-				&lastLoginAtStr,
-				&groupsStr,
-				&acount.FullName,
-				&acount.SessionToken,
-				&acount.ProfilePicture,
-				&acount.UserId,
-				&acount.Phone,
-				&updatedAtStr,
-				&acount.Username,
-				&acount.Email,
-				&rolesStr,
-				&acount.Status,
-				&createAtStr,
+				&account.UserId, &account.Username, &account.Password, &account.Email,
+				&account.Phone, &account.FullName, &rolesStr, &groupsStr, &permissionsStr,
+				&account.Status, &account.COP, &createdAtStr, &updatedAtStr, &lastLoginAtStr,
+				&account.ProfilePicture,
 			)
 			if err != nil {
 				return nil, err
 			}
 			updatedAt, _ := time.Parse("2006-01-02 15:04:05", updatedAtStr)
-			createAt, _ := time.Parse("2006-01-02 15:04:05", createAtStr)
+			createAt, _ := time.Parse("2006-01-02 15:04:05", createdAtStr)
 			lastLoginAt, _ := time.Parse("2006-01-02 15:04:05", lastLoginAtStr)
-			acount.CreatedAt = createAt
-			acount.LastLoginAt = lastLoginAt
-			acount.UpdatedAt = updatedAt
-			acount.Roles = strings.Split(rolesStr, ",")
-			acount.UserGroups = strings.Split(groupsStr, ",")
-			simpleStruct = acount
+			account.CreatedAt = createAt
+			account.LastLoginAt = lastLoginAt
+			account.UpdatedAt = updatedAt
+			account.Roles = strings.Split(rolesStr, ",")
+			account.UserGroups = strings.Split(groupsStr, ",")
+			account.UserGroups = strings.Split(permissionsStr, ",")
+			simpleStruct = &account
 			return simpleStruct, nil
 
 		case mysql.UserGroupTable:
 			var group core.UserGroup
-			var lastUpdatedAtStr, createAtStr, permissionStr, membersStr string
+			var lastUpdatedAtStr, createdAtStr, permissionsStr, membersStr string
 			err = rows.Scan(
-				&createAtStr,
-				&lastUpdatedAtStr,
 				&group.GroupId,
+				&group.GroupLeads,
 				&group.GroupName,
 				&group.Description,
-				&permissionStr,
+				&permissionsStr,
 				&membersStr,
+				&createdAtStr,
+				&lastUpdatedAtStr,
 			)
 			if err != nil {
 				return nil, err
 			}
 			lastUpdatedAt, _ := time.Parse("2006-01-02 15:04:05", lastUpdatedAtStr)
-			createAt, _ := time.Parse("2006-01-02 15:04:05", createAtStr)
-			permission := strings.Split(permissionStr, ",")
+			createAt, _ := time.Parse("2006-01-02 15:04:05", createdAtStr)
+			permission := strings.Split(permissionsStr, ",")
 			members := strings.Split(membersStr, ",")
 			group.LastUpdatedAt = lastUpdatedAt
 			group.CreatedAt = createAt
 			group.Permissions = permission
 			group.Members = members
-			simpleStruct = group
+			simpleStruct = &group
 			return simpleStruct, nil
 
 		case mysql.RoleTable:
 			var role core.Role
-			var createAtStr, permissionStr string
+			var createdAtStr, permissionsStr string
 
 			err = rows.Scan(
-				&role.Description,
-				&permissionStr,
-				&createAtStr,
 				&role.RoleId,
 				&role.RoleName,
+				&role.Description,
+				&permissionsStr,
+				&createdAtStr,
 			)
 			if err != nil {
 				return nil, err
 			}
-			createAt, _ := time.Parse("2006-01-02 15:04:05", createAtStr)
-			permission := strings.Split(permissionStr, ",")
+			createAt, _ := time.Parse("2006-01-02 15:04:05", createdAtStr)
+			permission := strings.Split(permissionsStr, ",")
 			role.CreatedAt = createAt
 			role.Permissions = permission
-			simpleStruct = role
+			simpleStruct = &role
 			return simpleStruct, nil
 
 		default:
@@ -439,9 +461,10 @@ func (mysql *Mysql) CreateTable(tableName string) error {
 			"CreatedAt":      "TIMESTAMP",
 			"UpdatedAt":      "TIMESTAMP",
 			"LastLoginAt":    "TIMESTAMP",
-			"SessionToken":   "VARCHAR(255)",
 			"ProfilePicture": "VARCHAR(255)",
 			"UserGroups":     "VARCHAR(255)",
+			"Permissions":    "VARCHAR(255)",
+			"COP":            "INT",
 		}
 		primaryKey = "UserId"
 		indexes = []string{"Username", "Email"}

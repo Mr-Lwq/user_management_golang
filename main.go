@@ -18,16 +18,21 @@ func main() {
 	var grpcPort string
 	var restPort string
 	var username, password, host, port, database string
+	var pcu int
 
-	flag.StringVar(&mode, "mode", "simple", "Select boot mode.")
-	flag.StringVar(&grpcPort, "grpc-port", "50051", "gRPC server port")
+	flag.StringVar(&mode, "mode", "mysql", "Select boot mode.")
 	flag.StringVar(&restPort, "rest-port", "50050", "RESTful server port")
+	flag.StringVar(&grpcPort, "grpc-port", "50051", "gRPC server port")
 	flag.StringVar(&username, "username", "root", "MySQL DB's username")
-	flag.StringVar(&password, "pd", "admin", "MySQL DB's password")
-	flag.StringVar(&host, "host", "localhost", "MySQL DB's host")
+	flag.StringVar(&password, "pd", "Zkyy2021", "MySQL DB's password")
+	flag.StringVar(&host, "host", "10.1.38.245", "MySQL DB's host")
 	flag.StringVar(&port, "port", "3307", "MySQL DB's port")
 	flag.StringVar(&database, "db", "user_management", "MySQL DB's db name")
+	flag.IntVar(&pcu, "pcu", 5, "Maximum number of concurrent online users")
 	flag.Parse()
+
+	service.PCU = pcu
+	go service.CleanupExpiredTokens()
 
 	var Db dao.ORM
 	var err error
@@ -39,16 +44,19 @@ func main() {
 		}
 	case "mysql":
 		Db, err = dao.NewMysql(dao.MysqlCfg{
-			username,
-			password,
-			host,
-			port,
-			database})
+			Username: username,
+			Password: password,
+			Host:     host,
+			Port:     port,
+			Database: database})
 		if err != nil {
 			fmt.Printf("Failed to connect MySql database: %v\n", err)
+			return
 		}
+		fmt.Printf("Successfully connected to MySQL database at %s:%s, Database: %s\n", host, port, database)
 	default:
 		fmt.Printf("Failed to parse the %v\n mode because it does not exist", err)
+		return
 	}
 
 	go func() {
@@ -83,7 +91,7 @@ func main() {
 		r.GET("/search-role", restAPI.SearchRole)
 		r.GET("/search-group", restAPI.SearchGroup)
 		r.GET("/get-userid", restAPI.GetUserId)
-		//r.GET("/search-permission", restAPI.CheckTokenValid)
+		r.GET("/search-permission", restAPI.SearchPermission)
 		r.PUT("/edit", restAPI.Edit)
 		//r.DELETE("/del-role", restAPI.CheckTokenValid)
 		//r.DELETE("/del-group", restAPI.CheckTokenValid)

@@ -95,7 +95,6 @@ func (myBolt *MyBolt) init() {
 			UserGroups:     []string{"administrators"},
 			Permissions:    []string{"administrators"},
 			Status:         "activate",
-			COP:            0,
 			CreatedAt:      time.Now(),
 			UpdatedAt:      time.Now(),
 			LastLoginAt:    time.Now(),

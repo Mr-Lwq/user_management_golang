@@ -91,7 +91,6 @@ func (mysql *Mysql) init() {
 			Roles:          []string{"administrators"},
 			UserGroups:     []string{"administrators"},
 			Permissions:    []string{"administrators"},
-			COP:            0,
 			Status:         "activate",
 			CreatedAt:      time.Now(),
 			UpdatedAt:      time.Now(),
@@ -210,11 +209,23 @@ func (mysql *Mysql) Update(tb core.TableData) error {
 		tableName = mysql.AccountTable
 		idValue = t.UserId
 		idColName = "UserId"
+	case *core.Account:
+		tableName = mysql.AccountTable
+		idValue = t.UserId
+		idColName = "UserId"
 	case core.UserGroup:
 		tableName = mysql.UserGroupTable
 		idValue = t.GroupId
 		idColName = "GroupId"
+	case *core.UserGroup:
+		tableName = mysql.UserGroupTable
+		idValue = t.GroupId
+		idColName = "GroupId"
 	case core.Role:
+		tableName = mysql.RoleTable
+		idValue = t.RoleId
+		idColName = "RoleId"
+	case *core.Role:
 		tableName = mysql.RoleTable
 		idValue = t.RoleId
 		idColName = "RoleId"
@@ -331,7 +342,7 @@ func (mysql *Mysql) Search(tb core.TableData) (interface{}, error) {
 		query = fmt.Sprintf(`
         SELECT 
             UserId, Username, Password, Email, Phone, FullName, 
-            Roles, UserGroups, Permissions, Status, COP, 
+            Roles, UserGroups, Permissions, Status, 
             CreatedAt, UpdatedAt, LastLoginAt, ProfilePicture 
         FROM %s 
         WHERE %s = ?`, tableName, idColName)
@@ -368,7 +379,7 @@ func (mysql *Mysql) Search(tb core.TableData) (interface{}, error) {
 			err = rows.Scan(
 				&account.UserId, &account.Username, &account.Password, &account.Email,
 				&account.Phone, &account.FullName, &rolesStr, &groupsStr, &permissionsStr,
-				&account.Status, &account.COP, &createdAtStr, &updatedAtStr, &lastLoginAtStr,
+				&account.Status, &createdAtStr, &updatedAtStr, &lastLoginAtStr,
 				&account.ProfilePicture,
 			)
 			if err != nil {
@@ -464,7 +475,6 @@ func (mysql *Mysql) CreateTable(tableName string) error {
 			"ProfilePicture": "VARCHAR(255)",
 			"UserGroups":     "VARCHAR(255)",
 			"Permissions":    "VARCHAR(255)",
-			"COP":            "INT",
 		}
 		primaryKey = "UserId"
 		indexes = []string{"Username", "Email"}

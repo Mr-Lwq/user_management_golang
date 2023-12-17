@@ -25,6 +25,8 @@ type TokenInfo struct {
 var (
 	// Token 缓存
 	tokenCache = make(map[string]TokenInfo)
+	// COP 缓存
+	copCache = make(map[string]int)
 	// 同步锁
 	cacheMutex = &sync.RWMutex{}
 )
@@ -80,19 +82,19 @@ func (s *Server) Login(account core.Account) (string, error) {
 		return "", errors.New("account is unusable")
 	}
 
-	if user.COP >= PCU {
-		return "", fmt.Errorf("the maximum concurrent online time has been exceeded. Please log out of some accounts first")
+	cacheMutex.RLock()
+	cop, exists := copCache[user.UserId]
+	if exists && cop >= PCU {
+		return "", fmt.Errorf("maximum concurrent online limit reached")
 	}
+	cacheMutex.RUnlock()
 
 	sessionToken, err := GenerateSessionToken(user.Username)
 	if err != nil {
 		return "", fmt.Errorf("error generating session token: %v", err)
 	}
 
-	user.COP += 1
-	if err := s.Db.Update(user); err != nil {
-		return "", fmt.Errorf("error updating user in database: %v", err)
-	}
+	copCache[user.UserId] = cop + 1
 
 	expiryTime := time.Now().Add(2 * time.Hour).Unix()
 	tokenCache[sessionToken] = TokenInfo{Expiry: time.Unix(expiryTime, 0)}
@@ -102,12 +104,12 @@ func (s *Server) Login(account core.Account) (string, error) {
 
 // LogoutByToken
 func (s *Server) LogoutByToken(account core.Account, token string) error {
-	var db = s.Db
-	result, _ := db.Search(account)
-	user, ok := result.(*core.Account)
-	if !ok {
-		return fmt.Errorf("expected result type: *core.Account, got: %T", result)
-	}
+	//var db = s.Db
+	//result, _ := db.Search(account)
+	//user, ok := result.(*core.Account)
+	//if !ok {
+	//	return fmt.Errorf("expected result type: *core.Account, got: %T", result)
+	//}
 
 	cacheMutex.RLock()
 	_, tokenExists := tokenCache[token]
@@ -121,11 +123,9 @@ func (s *Server) LogoutByToken(account core.Account, token string) error {
 	delete(tokenCache, token)
 	cacheMutex.Unlock()
 
-	user.COP -= 1
-	err := db.Update(user)
-	if err != nil {
-		return err
-	}
+	userId, _ := GetUserIdFromToken(token)
+	copCache[userId] -= 1
+
 	return nil
 }
 
@@ -141,23 +141,18 @@ func (s *Server) LogoutByCredentials(account core.Account) error {
 		return fmt.Errorf("expected result type: *core.Account, got: %T", result)
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(account.Password)); err != nil {
+	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(account.Password)); err != nil {
 		return errors.New("authentication failed")
 	}
 
-	if user.COP <= 0 {
+	cacheMutex.RLock()
+	cop, exists := copCache[user.UserId]
+	if !exists || cop <= 0 {
 		return errors.New("no device is currently online")
 	}
+	cacheMutex.RUnlock()
 
-	if err != nil {
-		return fmt.Errorf("error generating session token: %v", err)
-	}
-
-	user.COP -= 1
-
-	if err := s.Db.Update(user); err != nil {
-		return fmt.Errorf("error updating user in database: %v", err)
-	}
+	copCache[user.UserId] -= 1
 
 	return nil
 }

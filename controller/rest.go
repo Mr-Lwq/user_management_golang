@@ -37,7 +37,6 @@ func (r *RestController) Register(c *gin.Context) {
 		Phone:          req.Phone,
 		FullName:       req.FullName,
 		ProfilePicture: req.ProfilePicture,
-		COP:            0,
 		Status:         "activate",
 	}
 	success, err := r.server.UserRegister(account)

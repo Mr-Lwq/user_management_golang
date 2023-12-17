@@ -24,7 +24,6 @@ type Account struct {
 	UserGroups     []string  // 用户组
 	Permissions    []string  // 用户组权限（可以是权限名称的列表）
 	Status         string    // 账户状态 (激活、锁定、禁用等)
-	COP            int       // 目前该账号在线数量
 	CreatedAt      time.Time // 账户创建时间
 	UpdatedAt      time.Time // 账户更新时间
 	LastLoginAt    time.Time // 最后登录时间

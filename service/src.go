@@ -83,42 +83,43 @@ func (s *Server) Login(account core.Account) (string, error) {
 		return "", errors.New("account is unusable")
 	}
 
-	copCacheMutex.RLock()
-	cop, exists := copCache[user.UserId]
-	if exists && cop >= PCU {
-		return "", fmt.Errorf("maximum concurrent online limit reached")
-	}
-	copCacheMutex.RUnlock()
-
 	sessionToken, err := GenerateSessionToken(user.Username)
 	if err != nil {
 		return "", fmt.Errorf("error generating session token: %v", err)
 	}
 
-	copCache[user.UserId] = cop + 1
-
 	expiryTime := time.Now().Add(2 * time.Hour).Unix()
+	tokenCacheMutex.RLock()
 	tokenCache[sessionToken] = TokenInfo{Expiry: time.Unix(expiryTime, 0)}
+	tokenCacheMutex.RUnlock()
+
+	copCacheMutex.RLock()
+	cop, exists := copCache[user.UserId]
+	if exists && cop > PCU {
+		return "", fmt.Errorf("maximum concurrent online limit reached")
+	}
+	copCache[user.UserId] = cop + 1
+	copCacheMutex.RUnlock()
 
 	return sessionToken, nil
 }
 
 // LogoutByToken
 func (s *Server) LogoutByToken(token string) error {
+
 	tokenCacheMutex.RLock()
 	_, tokenExists := tokenCache[token]
-	tokenCacheMutex.RUnlock()
-
 	if !tokenExists {
 		return fmt.Errorf("invalid token")
 	}
-
-	tokenCacheMutex.Lock()
 	delete(tokenCache, token)
-	tokenCacheMutex.Unlock()
+	tokenCacheMutex.RUnlock()
 
 	userId, _ := GetUserIdFromToken(token)
+
+	copCacheMutex.RLock()
 	copCache[userId] -= 1
+	copCacheMutex.RUnlock()
 
 	return nil
 }
@@ -144,9 +145,8 @@ func (s *Server) LogoutByCredentials(account core.Account) error {
 	if !exists || cop <= 0 {
 		return errors.New("no device is currently online")
 	}
-	copCacheMutex.RUnlock()
-
 	copCache[user.UserId] -= 1
+	copCacheMutex.RUnlock()
 
 	return nil
 }
@@ -274,6 +274,10 @@ func (s *Server) RetrieveTokenForUser(account core.Account) ([]string, error) {
 		}
 	}
 	tokenCacheMutex.Unlock()
+
+	copCacheMutex.RLock()
+	copCache[user.UserId] = len(copCache)
+	copCacheMutex.RUnlock()
 
 	return tokens, err
 }

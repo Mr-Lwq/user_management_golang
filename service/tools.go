@@ -95,6 +95,10 @@ func CleanupExpiredTokens() {
 		for token, info := range tokenCache {
 			if info.Expiry.Before(time.Now()) {
 				delete(tokenCache, token)
+				userId, _ := GetUserIdFromToken(token)
+				copCacheMutex.RLock()
+				copCache[userId] -= 1
+				copCacheMutex.RUnlock()
 				fmt.Printf("Expired token %s has been removed.\n", token)
 			}
 		}

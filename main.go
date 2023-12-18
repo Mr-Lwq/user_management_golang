@@ -20,7 +20,7 @@ func main() {
 	var username, password, host, port, database string
 	var pcu int
 
-	flag.StringVar(&mode, "mode", "mysql", "Select boot mode.")
+	flag.StringVar(&mode, "mode", "simple", "Select boot mode.")
 	flag.StringVar(&restPort, "rest-port", "50050", "RESTful server port")
 	flag.StringVar(&grpcPort, "grpc-port", "50051", "gRPC server port")
 	flag.StringVar(&username, "username", "root", "MySQL DB's username")
@@ -86,7 +86,8 @@ func main() {
 		r.GET("/version", restAPI.Version)
 		r.POST("/register", restAPI.Register)
 		r.POST("/login", restAPI.Login)
-		r.POST("/logout", restAPI.Logout)
+		r.POST("/logout", restAPI.LogoutByToken)
+		r.POST("/retrieve-token-for-user", restAPI.RetrieveTokenForUser)
 		r.GET("/check-token-valid", restAPI.CheckTokenValid)
 		r.GET("/search-role", restAPI.SearchRole)
 		r.GET("/search-group", restAPI.SearchGroup)

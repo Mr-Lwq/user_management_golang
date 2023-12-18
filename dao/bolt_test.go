@@ -38,7 +38,6 @@ func TestMyBolt_Insert(t *testing.T) {
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 		LastLoginAt:    time.Now(),
-		SessionToken:   "",
 		ProfilePicture: "",
 		UserGroups:     []string{""},
 	}
@@ -77,7 +76,6 @@ func TestMyBolt_Update(t *testing.T) {
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 		LastLoginAt:    time.Now(),
-		SessionToken:   "",
 		ProfilePicture: "",
 		UserGroups:     []string{""},
 	}
@@ -106,7 +104,6 @@ func TestMyBolt_Del(t *testing.T) {
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 		LastLoginAt:    time.Now(),
-		SessionToken:   "",
 		ProfilePicture: "",
 		UserGroups:     []string{""},
 	}
@@ -135,7 +132,6 @@ func TestMyBolt_Search(t *testing.T) {
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 		LastLoginAt:    time.Now(),
-		SessionToken:   "",
 		ProfilePicture: "",
 		UserGroups:     []string{""},
 	}

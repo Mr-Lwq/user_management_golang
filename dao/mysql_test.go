@@ -62,9 +62,9 @@ func TestMysql_Insert(t *testing.T) {
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 		LastLoginAt:    time.Now(),
-		SessionToken:   "",
 		ProfilePicture: "",
 		UserGroups:     []string{"administrators"},
+		Permissions:    []string{"administrators"},
 	}
 	err := mysql.Insert(admin)
 	if err != nil {
@@ -95,7 +95,6 @@ func TestMysql_Update(t *testing.T) {
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 		LastLoginAt:    time.Now(),
-		SessionToken:   "",
 		ProfilePicture: "",
 		UserGroups:     []string{"administrators"},
 	}
@@ -128,7 +127,6 @@ func TestMysql_Del(t *testing.T) {
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 		LastLoginAt:    time.Now(),
-		SessionToken:   "",
 		ProfilePicture: "",
 		UserGroups:     []string{"administrators"},
 	}

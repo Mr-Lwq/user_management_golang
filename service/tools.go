@@ -61,9 +61,9 @@ func GetUserIdFromToken(tokenString string) (string, error) {
 }
 
 func UseToken(token string) bool {
-	cacheMutex.RLock()
+	tokenCacheMutex.RLock()
 	tokenInfo, exists := tokenCache[token]
-	cacheMutex.RUnlock()
+	tokenCacheMutex.RUnlock()
 
 	if !exists {
 		fmt.Println("Token not found.")
@@ -78,9 +78,9 @@ func UseToken(token string) bool {
 	// 惰性更新：仅当 token 即将在短时间内过期时更新
 	if time.Until(tokenInfo.Expiry) < 30*time.Minute {
 		newExpiry := time.Now().Add(1 * time.Hour)
-		cacheMutex.Lock()
+		tokenCacheMutex.Lock()
 		tokenCache[token] = TokenInfo{Expiry: newExpiry}
-		cacheMutex.Unlock()
+		tokenCacheMutex.Unlock()
 		fmt.Println("Token expiry extended.")
 	}
 
@@ -91,13 +91,13 @@ func CleanupExpiredTokens() {
 	for {
 		<-time.After(1 * time.Hour) // 每小时运行一次
 
-		cacheMutex.Lock()
+		tokenCacheMutex.Lock()
 		for token, info := range tokenCache {
 			if info.Expiry.Before(time.Now()) {
 				delete(tokenCache, token)
 				fmt.Printf("Expired token %s has been removed.\n", token)
 			}
 		}
-		cacheMutex.Unlock()
+		tokenCacheMutex.Unlock()
 	}
 }

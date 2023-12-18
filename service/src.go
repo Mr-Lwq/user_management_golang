@@ -25,10 +25,11 @@ type TokenInfo struct {
 var (
 	// Token 缓存
 	tokenCache = make(map[string]TokenInfo)
-	// COP 缓存
-	copCache = make(map[string]int)
 	// 同步锁
-	cacheMutex = &sync.RWMutex{}
+	tokenCacheMutex = &sync.RWMutex{}
+	// COP 缓存
+	copCache      = make(map[string]int)
+	copCacheMutex = &sync.RWMutex{}
 )
 
 // UserRegister
@@ -82,12 +83,12 @@ func (s *Server) Login(account core.Account) (string, error) {
 		return "", errors.New("account is unusable")
 	}
 
-	cacheMutex.RLock()
+	copCacheMutex.RLock()
 	cop, exists := copCache[user.UserId]
 	if exists && cop >= PCU {
 		return "", fmt.Errorf("maximum concurrent online limit reached")
 	}
-	cacheMutex.RUnlock()
+	copCacheMutex.RUnlock()
 
 	sessionToken, err := GenerateSessionToken(user.Username)
 	if err != nil {
@@ -103,25 +104,18 @@ func (s *Server) Login(account core.Account) (string, error) {
 }
 
 // LogoutByToken
-func (s *Server) LogoutByToken(account core.Account, token string) error {
-	//var db = s.Db
-	//result, _ := db.Search(account)
-	//user, ok := result.(*core.Account)
-	//if !ok {
-	//	return fmt.Errorf("expected result type: *core.Account, got: %T", result)
-	//}
-
-	cacheMutex.RLock()
+func (s *Server) LogoutByToken(token string) error {
+	tokenCacheMutex.RLock()
 	_, tokenExists := tokenCache[token]
-	cacheMutex.RUnlock()
+	tokenCacheMutex.RUnlock()
 
 	if !tokenExists {
 		return fmt.Errorf("invalid token")
 	}
 
-	cacheMutex.Lock()
+	tokenCacheMutex.Lock()
 	delete(tokenCache, token)
-	cacheMutex.Unlock()
+	tokenCacheMutex.Unlock()
 
 	userId, _ := GetUserIdFromToken(token)
 	copCache[userId] -= 1
@@ -145,12 +139,12 @@ func (s *Server) LogoutByCredentials(account core.Account) error {
 		return errors.New("authentication failed")
 	}
 
-	cacheMutex.RLock()
+	copCacheMutex.RLock()
 	cop, exists := copCache[user.UserId]
 	if !exists || cop <= 0 {
 		return errors.New("no device is currently online")
 	}
-	cacheMutex.RUnlock()
+	copCacheMutex.RUnlock()
 
 	copCache[user.UserId] -= 1
 
@@ -244,4 +238,42 @@ func (s *Server) VerifyToken(token string) error {
 	} else {
 		return fmt.Errorf("the token is expired")
 	}
+}
+
+// RetrieveTokenForUser
+func (s *Server) RetrieveTokenForUser(account core.Account) ([]string, error) {
+	var db = s.Db
+	var tokens []string
+	result, err := db.Search(account)
+
+	if err != nil {
+		return nil, fmt.Errorf("error searching for user: %v", err)
+	}
+
+	user, ok := result.(*core.Account)
+	if !ok {
+		return nil, fmt.Errorf("expected result type: *core.Account, got: %T", result)
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(account.Password)); err != nil {
+		return nil, errors.New("authentication failed")
+	}
+
+	if user.Status != "activate" {
+		return nil, errors.New("account is unusable")
+	}
+
+	tokenCacheMutex.Lock()
+	for token, info := range tokenCache {
+		if info.Expiry.Before(time.Now()) {
+			delete(tokenCache, token)
+		}
+		userId, _ := GetUserIdFromToken(token)
+		if userId == user.UserId {
+			tokens = append(tokens, token)
+		}
+	}
+	tokenCacheMutex.Unlock()
+
+	return tokens, err
 }

@@ -19,7 +19,12 @@ func NewRestController(db *service.Server) *RestController {
 }
 
 func (r *RestController) Version(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"Message": "1.0.0"})
+	c.JSON(http.StatusOK, gin.H{
+		"Message": "1.2.0",
+		"remarks": "1. 新增token 查询接口；" +
+			"2. 修改logout接口，只允许用token进行登出；" +
+			"3. 修复死锁问题；",
+	})
 }
 
 func (r *RestController) Register(c *gin.Context) {
@@ -77,7 +82,41 @@ func (r *RestController) Login(c *gin.Context) {
 	}
 }
 
-func (r *RestController) Logout(c *gin.Context) {
+func (r *RestController) RetrieveTokenForUser(c *gin.Context) {
+	var req pb.LoginReq
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"Message": err.Error()})
+		return
+	}
+	account := core.Account{
+		UserId:   req.Username,
+		Username: req.Username,
+		Password: req.Password,
+	}
+
+	tokens, err := r.server.RetrieveTokenForUser(account)
+	if err != nil {
+		c.JSON(401, gin.H{"Message": err.Error()})
+	}
+	c.JSON(http.StatusOK, gin.H{"Message": tokens})
+}
+
+func (r *RestController) LogoutByToken(c *gin.Context) {
+	verifyToken(c, func(account *core.Account, token string) {
+		err := r.server.LogoutByToken(token)
+		if err != nil {
+			c.JSON(401, gin.H{"Message": err.Error()})
+			return
+		} else {
+			c.JSON(http.StatusOK, gin.H{
+				"Message": "logout successful.",
+			})
+		}
+	})
+}
+
+// LogoutByCredentials not use
+func (r *RestController) LogoutByCredentials(c *gin.Context) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 	if username != "" && password != "" {
@@ -95,18 +134,6 @@ func (r *RestController) Logout(c *gin.Context) {
 		})
 		return
 	}
-
-	verifyToken(c, func(account *core.Account, token string) {
-		err := r.server.LogoutByToken(*account, token)
-		if err != nil {
-			c.JSON(401, gin.H{"Message": err.Error()})
-			return
-		} else {
-			c.JSON(http.StatusOK, gin.H{
-				"Message": "logout  successful.",
-			})
-		}
-	})
 }
 
 func (r *RestController) CheckTokenValid(c *gin.Context) {
@@ -200,13 +227,6 @@ func (r *RestController) GetUserId(c *gin.Context) {
 		}
 	})
 }
-
-// CreateRole
-//func (r *RestController) CreateRole(c *gin.Context) {
-//	verifyToken(c, func(account *core.Account, token string) {
-//		r.server.
-//	})
-//}
 
 func verifyToken(c *gin.Context, callFunc func(account *core.Account, token string)) {
 	authHeader := c.GetHeader("Authorization")

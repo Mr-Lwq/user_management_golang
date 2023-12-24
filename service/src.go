@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"strings"
-	"sync"
 	"time"
 	"unicode/utf8"
 	"user_management_golang/core"
@@ -15,22 +14,6 @@ import (
 type Server struct {
 	Db dao.ORM
 }
-
-var PCU int
-
-type TokenInfo struct {
-	Expiry time.Time
-}
-
-var (
-	// Token 缓存
-	tokenCache = make(map[string]TokenInfo)
-	// 同步锁
-	tokenCacheMutex = &sync.RWMutex{}
-	// COP 缓存
-	copCache      = make(map[string]int)
-	copCacheMutex = &sync.RWMutex{}
-)
 
 // UserRegister
 func (s *Server) UserRegister(account core.Account) (bool, error) {
@@ -83,44 +66,28 @@ func (s *Server) Login(account core.Account) (string, error) {
 		return "", errors.New("account is unusable")
 	}
 
-	sessionToken, err := GenerateSessionToken(user.Username)
-	if err != nil {
-		return "", fmt.Errorf("error generating session token: %v", err)
-	}
-
-	expiryTime := time.Now().Add(2 * time.Hour).Unix()
-	tokenCacheMutex.RLock()
-	tokenCache[sessionToken] = TokenInfo{Expiry: time.Unix(expiryTime, 0)}
-	tokenCacheMutex.RUnlock()
-
-	copCacheMutex.RLock()
 	cop, exists := copCache[user.UserId]
 	if exists && cop > PCU {
 		return "", fmt.Errorf("maximum concurrent online limit reached")
 	}
-	copCache[user.UserId] = cop + 1
-	copCacheMutex.RUnlock()
 
+	sessionToken, err := GenerateSessionToken(user.Username)
+	if err != nil {
+		return "", fmt.Errorf("error generating session token: %v", err)
+	}
+	TokenStacking(sessionToken)
 	return sessionToken, nil
 }
 
 // LogoutByToken
 func (s *Server) LogoutByToken(token string) error {
 
-	tokenCacheMutex.RLock()
 	_, tokenExists := tokenCache[token]
 	if !tokenExists {
 		return fmt.Errorf("invalid token")
 	}
-	delete(tokenCache, token)
-	tokenCacheMutex.RUnlock()
 
-	userId, _ := GetUserIdFromToken(token)
-
-	copCacheMutex.RLock()
-	copCache[userId] -= 1
-	copCacheMutex.RUnlock()
-
+	TokenOutOfStack(token)
 	return nil
 }
 
@@ -140,11 +107,12 @@ func (s *Server) LogoutByCredentials(account core.Account) error {
 		return errors.New("authentication failed")
 	}
 
-	copCacheMutex.RLock()
 	cop, exists := copCache[user.UserId]
 	if !exists || cop <= 0 {
 		return errors.New("no device is currently online")
 	}
+
+	copCacheMutex.RLock()
 	copCache[user.UserId] -= 1
 	copCacheMutex.RUnlock()
 
@@ -263,20 +231,21 @@ func (s *Server) RetrieveTokenForUser(account core.Account) ([]string, error) {
 		return nil, errors.New("account is unusable")
 	}
 
-	tokenCacheMutex.Lock()
 	for token, info := range tokenCache {
 		if info.Expiry.Before(time.Now()) {
+			tokenCacheMutex.Lock()
 			delete(tokenCache, token)
+			tokenCacheMutex.Unlock()
+			fmt.Println("过期")
 		}
 		userId, _ := GetUserIdFromToken(token)
 		if userId == user.UserId {
 			tokens = append(tokens, token)
 		}
 	}
-	tokenCacheMutex.Unlock()
 
 	copCacheMutex.RLock()
-	copCache[user.UserId] = len(copCache)
+	copCache[user.UserId] = len(tokens) + 1
 	copCacheMutex.RUnlock()
 
 	return tokens, err

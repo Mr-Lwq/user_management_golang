@@ -247,17 +247,6 @@ func verifyToken(c *gin.Context, callFunc func(account *core.Account, token stri
 		return
 	}
 
-	success, err := service.IsTokenValid(token)
-	if err != nil {
-		c.JSON(401, gin.H{"Message": err.Error()})
-		return
-	}
-
-	if !success {
-		c.JSON(401, gin.H{"Message": "the token has expired"})
-		return
-	}
-
 	account := &core.Account{UserId: userId}
 	callFunc(account, token)
 }
